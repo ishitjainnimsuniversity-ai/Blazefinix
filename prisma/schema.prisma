@@ -1,0 +1,160 @@
+// Prisma Schema for LOOP — AI Customer-Feedback Intelligence Platform
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+enum FeedbackStatus {
+  NEW
+  REVIEWED
+  RESOLVED
+  ARCHIVED
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum ProcessingStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Workspace {
+  id          String                  @id @default(cuid())
+  name        String
+  slug        String                  @unique
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  users       User[]
+  feedback    Feedback[]
+  themes      Theme[]
+  reports     VoiceOfCustomerReport[]
+
+  @@index([slug])
+}
+
+model User {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String    @unique
+  name        String?
+  role        Role      @default(ANALYST)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model Feedback {
+  id               String            @id @default(cuid())
+  workspaceId      String
+  source           String            // e.g. "Website", "App", "Support", "Survey", "Social"
+  customerName     String?
+  customerEmail    String?
+  rawText          String
+  status           FeedbackStatus    @default(NEW)
+  sentiment        Sentiment?
+  sentimentScore   Float?            // Normalized -1.0 to 1.0
+  featureArea      String?           // e.g. "Billing", "Authentication", "Performance", "UI/UX"
+  aiRationale      String?
+  aiStatus         ProcessingStatus  @default(PENDING)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  analysis         AiAnalysis?
+  feedbackThemes   FeedbackTheme[]
+  embedding        FeedbackEmbedding?
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, sentiment])
+  @@index([workspaceId, featureArea])
+  @@index([workspaceId, createdAt])
+}
+
+model AiAnalysis {
+  id               String           @id @default(cuid())
+  feedbackId       String           @unique
+  sentiment        Sentiment
+  sentimentScore   Float
+  themes           String[]
+  featureArea      String
+  rationale        String
+  model            String
+  processingStatus ProcessingStatus @default(COMPLETED)
+  createdAt        DateTime         @default(now())
+  feedback         Feedback         @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId])
+}
+
+model Theme {
+  id             String          @id @default(cuid())
+  workspaceId    String
+  name           String
+  description    String?
+  count          Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  feedbackThemes FeedbackTheme[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+}
+
+model FeedbackTheme {
+  id         String   @id @default(cuid())
+  feedbackId String
+  themeId    String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  theme      Theme    @relation(fields: [themeId], references: [id], onDelete: Cascade)
+
+  @@unique([feedbackId, themeId])
+  @@index([feedbackId])
+  @@index([themeId])
+}
+
+model FeedbackEmbedding {
+  id          String    @id @default(cuid())
+  feedbackId  String    @unique
+  workspaceId String
+  embedding   Float[]
+  feedback    Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model VoiceOfCustomerReport {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  period          String    // e.g. "Last 30 Days", "2026-Q1"
+  totalFeedback   Int
+  positivePercent Float
+  neutralPercent  Float
+  negativePercent Float
+  topThemes       Json      // Structured list of themes with count, percent, and trend
+  spikes          Json      // Detected statistical anomaly spikes
+  aiNarrative     String
+  generatedAt     DateTime  @default(now())
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
