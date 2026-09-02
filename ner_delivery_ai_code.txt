@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NER-Shield AI | Enterprise Delivery & Resiliency Portal</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bluedart: {
+                            blue: '#0A1E5C',
+                            yellow: '#FFCC00',
+                            navy: '#06102E'
+                        },
+                        delhivery: {
+                            red: '#E11D48',
+                            dark: '#0F172A'
+                        },
+                        darkbg: '#06102E',
+                        darkcard: '#0F1E3D',
+                        darkborder: 'rgba(255, 204, 0, 0.25)',
+                        neonCyan: '#06B6D4',
+                        neonEmerald: '#10B981',
+                        neonAmber: '#FFCC00',
+                        neonRed: '#EF4444',
+                        neonPurple: '#A855F7'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #F8FAFC;
+            overflow-x: hidden;
+            font-size: 16px;
+            background: 
+                linear-gradient(180deg, rgba(6, 16, 46, 0.84) 0%, rgba(6, 16, 46, 0.95) 100%),
+                url('logistics_bg.jpg') center/cover no-repeat fixed;
+        }
+
+        .glass-panel {
+            background: rgba(10, 22, 54, 0.85);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1.5px solid rgba(255, 204, 0, 0.22);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .glass-panel-glow {
+            background: rgba(10, 22, 54, 0.92);
+            backdrop-filter: blur(36px);
+            border: 2px solid rgba(255, 204, 0, 0.5);
+            box-shadow: 0 0 55px rgba(255, 204, 0, 0.22), 0 35px 70px -15px rgba(0, 0, 0, 0.9);
+        }
+
+        .role-card-hover {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .role-card-hover::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, #FFCC00, #06B6D4, #FFCC00);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .role-card-hover:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: rgba(255, 204, 0, 0.8);
+            box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.95), 0 0 50px rgba(255, 204, 0, 0.35);
+        }
+        .role-card-hover:hover::before { opacity: 1; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #06102E; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #FFCC00; }
+
+        @keyframes float-vehicle {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(1.2deg); }
+        }
+        .floating-vehicle-anim { animation: float-vehicle 4.5s ease-in-out infinite; }
+
+        @keyframes radar-pulse {
+            0% { transform: scale(0.85); opacity: 0.9; }
+            50% { transform: scale(1.5); opacity: 0.4; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+        .radar-beacon { position: relative; }
+        .radar-beacon::before {
+            content: '';
+            position: absolute;
+            top: -12px; left: -12px; right: -12px; bottom: -12px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.45);
+            animation: radar-pulse 2s infinite ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes sos-glow {
+            0%, 100% { box-shadow: 0 0 20px #EF4444, 0 0 40px #EF4444; }
+            50% { box-shadow: 0 0 40px #EF4444, 0 0 80px #EF4444; }
+        }
+        .sos-active-btn { animation: sos-glow 1.5s infinite; }
+
+        @keyframes alert-flash {
+            0%, 100% { background-color: rgba(220, 38, 38, 0.3); border-color: #EF4444; }
+            50% { background-color: rgba(220, 38, 38, 0.75); border-color: #F87171; }
+        }
+        .admin-sos-alert-flash { animation: alert-flash 1s infinite; }
+
+        .map-canvas {
+            width: 100%; height: 100%;
+            border-radius: 1.5rem;
+            z-index: 10;
+        }
+        .leaflet-container { background: #06102E !important; }
+
+        .leaflet-popup-content-wrapper {
+            background: #0F1E3D !important;
+            color: #F8FAFC !important;
+            border: 2px solid #FFCC00;
+            border-radius: 16px;
+            font-size: 14px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.9);
+        }
+        .leaflet-popup-tip { background: #0F1E3D !important; }
+
+        .captcha-box {
+            background: linear-gradient(135deg, #0A1E5C, #FFCC00 300%);
+            letter-spacing: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            user-select: none;
+            border: 2.5px dashed #FFCC00;
+            text-shadow: 0 0 16px #FFCC00;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-400 selection:text-black">
+
+    <!-- GLOBAL HEADER BAR (SCALED & EXPANDED) -->
+    <header class="w-full glass-panel sticky top-0 z-50 px-6 lg:px-10 py-5 flex flex-wrap items-center justify-between gap-5 border-b border-amber-400/30">
+        <div class="flex items-center space-x-4 cursor-pointer" onclick="showSplashOpeningPage()">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 via-yellow-400 to-amber-500 flex items-center justify-center text-slate-950 shadow-2xl shadow-amber-400/40 border-2 border-yellow-300 transform hover:scale-105 transition">
+                <i class="fa-solid fa-truck-fast text-3xl"></i>
+            </div>
+            <div>
+                <div class="flex items-center space-x-3">
+                    <h1 class="font-heading text-3xl font-black text-white tracking-tight">NER-Shield <span class="text-amber-400">EXPRESS</span></h1>
+                    <span class="px-3 py-1 text-xs font-black bg-amber-400 text-slate-950 rounded-full font-mono uppercase tracking-widest shadow-md">Enterprise AI</span>
+                </div>
+                <p class="text-sm text-amber-200/90 font-medium">North East India Intelligent Delivery & Weather Resiliency Network</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4 flex-wrap gap-3">
+            <div class="hidden lg:flex items-center space-x-3 px-5 py-2.5 rounded-2xl bg-blue-950/90 border border-amber-400/40 text-sm text-amber-300 font-mono shadow-inner">
+                <span class="w-3 h-3 rounded-full bg-amber-400 animate-ping"></span>
+                <span class="font-bold">BLUEDART • DELHIVERY MESH LOGISTICS ACTIVE</span>
+            </div>
+
+            <button onclick="toggleAudioMute()" id="btn-audio-toggle" class="px-5 py-3 text-sm font-bold rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 transition flex items-center space-x-2.5 shadow-lg">
+                <i id="audio-icon" class="fa-solid fa-volume-high text-amber-400 text-base"></i>
+                <span id="audio-text">Audio On</span>
+            </button>
+
+            <button onclick="showPortalEntry()" class="px-6 py-3 text-sm font-black rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-slate-950 shadow-xl shadow-amber-400/25 transition flex items-center space-x-2.5 uppercase tracking-wider transform hover:scale-105">
+                <i class="fa-solid fa-grid-2-plus text-base"></i>
+                <span>Role Selection</span>
+            </button>
+
+            <div id="active-role-badge" class="hidden items-center space-x-3 bg-slate-900 border-2 border-amber-400/60 px-5 py-2.5 rounded-2xl text-sm shadow-xl">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                <span class="text-slate-300 font-medium">Active:</span>
+                <span id="role-display-name" class="font-black text-amber-400 font-mono text-base">CUSTOMER</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- LIVE TERRAIN HAZARD TICKER (ENLARGED) -->
+    <div id="hazard-alert-banner" class="w-full bg-gradient-to-r from-blue-950 via-amber-950 to-blue-950 border-b-2 border-amber-400/40 px-6 py-3 text-sm flex items-center justify-between text-amber-200 shadow-xl">
+        <div class="flex items-center space-x-3 overflow-hidden w-full">
+            <span class="px-3.5 py-1 rounded-full bg-amber-400 text-slate-950 font-black uppercase tracking-widest text-xs flex-shrink-0 shadow-md">
+                <i class="fa-solid fa-bolt mr-1.5"></i> LIVE FLEET TELEMETRY
+            </span>
+            <marquee class="font-mono text-slate-100 font-medium text-sm" scrollamount="7">
+                ⚡ NH6 Guwahati-Shillong: 88% Landslide Risk due to 38mm/h rain. ⚡ NH10 Sikkim Pass Teesta Gorge: Heavy mudflow alert. ⚡ NH13 Sela Pass Tawang: Snow-covered road detour. ⚡ SOS Mesh Rescue Network Active across all 5 Corridors.
+            </marquee>
+        </div>
+        <button onclick="document.getElementById('hazard-alert-banner').style.display='none'" class="text-slate-400 hover:text-white ml-4 flex-shrink-0">
+            <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+    </div>
+
+    <!-- ========================================================================================= -->
+    <!-- VIEW 0: WELCOME SPLASH OPENING PAGE (SCALED & EXPANDED 5/5 UI) -->
+    <!-- ========================================================================================= -->
+    <div id="view-splash" class="flex-1 w-full max-w-[1600px] mx-auto p-6 lg:p-12 flex flex-col justify-center items-center space-y-12">
+        
+        <!-- HERO BADGE -->
+        <div class="inline-flex items-center space-x-3 px-6 py-2.5 rounded-full bg-amber-400/15 border-2 border-amber-400/50 text-amber-300 text-sm font-black font-mono tracking-widest uppercase shadow-xl shadow-amber-400/10">
+            <i class="fa-solid fa-truck-bolt text-amber-400 text-base"></i>
+            <span>Next-Gen North East India Resilient Logistics Platform</span>
+        </div>
+
+        <!-- HERO TITLE -->
+        <div class="text-center max-w-5xl space-y-6">
+            <h1 class="font-heading text-5xl sm:text-7xl lg:text-8xl font-black text-white tracking-tight leading-tight drop-shadow-2xl">
+                Delivering High-Speed Logistics Through <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">Every Mountain Pass</span>
+            </h1>
+            <p class="text-lg sm:text-2xl text-slate-200 max-w-3xl mx-auto font-normal leading-relaxed drop-shadow-lg">
+                AI Weather Rain Forecasts, Mountain Landslide Risk Models, Safe Alternate Detours & Sub-GHz Mesh Rescue Network for All 5 North East Corridors.
+            </p>
+        </div>
+
+        <!-- VEHICLE GRAPHICS SHOWCASE CARDS (EXPANDED) -->
+        <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-8 my-6">
+            <div class="glass-panel-glow p-8 rounded-[2rem] text-center space-y-5 border-amber-400/40 floating-vehicle-anim" style="animation-delay: 0s;">
+                <div class="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950 flex items-center justify-center text-5xl shadow-2xl shadow-amber-400/30">
+                    <i class="fa-solid fa-truck-container"></i>
+                </div>
+                <div>
+                    <h3 class="font-heading text-2xl font-extrabold text-white">4x4 All-Terrain Cargo Fleet</h3>
+                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">Equipped with Cold Storage (2°C) and satellite telematics for steep hill cuts.</p>
+                </div>
+            </div>
+
+            <div class="glass-panel-glow p-8 rounded-[2rem] text-center space-y-5 border-amber-400/40 floating-vehicle-anim" style="animation-delay: 1.3s;">
+                <div class="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-cyan-500 to-blue-400 text-slate-950 flex items-center justify-center text-5xl shadow-2xl shadow-cyan-500/30">
+                    <i class="fa-solid fa-truck-pickup"></i>
+                </div>
+                <div>
+                    <h3 class="font-heading text-2xl font-extrabold text-white">50km Radius Rescue Winch</h3>
+                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">Heavy hydraulic towing trucks ready to pull vehicles stuck in mudslides.</p>
+                </div>
+            </div>
+
+            <div class="glass-panel-glow p-8 rounded-[2rem] text-center space-y-5 border-amber-400/40 floating-vehicle-anim" style="animation-delay: 2.6s;">
+                <div class="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-300 text-slate-950 flex items-center justify-center text-5xl shadow-2xl shadow-emerald-500/30">
+                    <i class="fa-solid fa-tower-cell"></i>
+                </div>
+                <div>
+                    <h3 class="font-heading text-2xl font-extrabold text-white">Sub-GHz Radio Mesh SOS</h3>
+                    <p class="text-sm text-slate-300 mt-2 leading-relaxed">Operates without mobile cellular tower signals in deep mountain gorges.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROMINENT CONTINUE BUTTON (LARGE & HIGH-IMPACT) -->
+        <div class="pt-4">
+            <button onclick="enterPortalFromSplash()" class="px-14 py-6 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-slate-950 font-black text-xl rounded-3xl shadow-2xl shadow-amber-400/40 transition transform hover:scale-105 uppercase tracking-wider flex items-center space-x-4 border-2 border-yellow-200">
+                <span>CONTINUE TO ENTERPRISE PORTAL</span>
+                <i class="fa-solid fa-circle-arrow-right text-2xl"></i>
+            </button>
+        </div>
+
+        <!-- PARTNER LOGISTICAL LOGOS & NETWORK BADGES -->
+        <div class="w-full max-w-5xl pt-8 border-t border-slate-800/80 text-center space-y-4">
+            <span class="text-xs font-mono font-bold uppercase tracking-widest text-amber-300 block">Interoperable Logistics Network Partners</span>
+            <div class="flex flex-wrap items-center justify-center gap-8 sm:gap-12 opacity-95 text-slate-200 text-base font-bold font-heading">
+                <span class="flex items-center space-x-3 px-5 py-2.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg"><i class="fa-solid fa-bolt text-amber-400 text-lg"></i><span>BLUEDART EXPRESS</span></span>
+                <span class="flex items-center space-x-3 px-5 py-2.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg"><i class="fa-solid fa-truck-fast text-red-500 text-lg"></i><span>DELHIVERY NET</span></span>
+                <span class="flex items-center space-x-3 px-5 py-2.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg"><i class="fa-solid fa-box text-cyan-400 text-lg"></i><span>GATI-KWE NER</span></span>
+                <span class="flex items-center space-x-3 px-5 py-2.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg"><i class="fa-solid fa-plane-departure text-purple-400 text-lg"></i><span>FedEx AIR CARGO</span></span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================================================================= -->
+    <!-- VIEW 1: PORTAL ENTRY SCREEN (3 ROLE SELECTION CARDS - EXPANDED) -->
+    <!-- ========================================================================================= -->
+    <div id="view-portal-entry" class="flex-1 w-full max-w-[1600px] mx-auto p-6 lg:p-12 flex flex-col justify-center items-center space-y-12 hidden">
+        
+        <div class="text-center max-w-5xl space-y-5 pt-4">
+            <div class="inline-flex items-center space-x-3 px-6 py-2 rounded-full bg-amber-400/15 border-2 border-amber-400/50 text-amber-300 text-sm font-black font-mono tracking-wider uppercase shadow-md">
+                <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                <span>Choose Access Level to Proceed</span>
+            </div>
+            <h1 class="font-heading text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-tight drop-shadow-xl">
+                Select Portal Role for <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">NER Software</span>
+            </h1>
+            <p class="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed">
+                Choose your role to launch the customer tracking panel, supplier admin operations command center, or driver rescue cockpit.
+            </p>
+        </div>
+
+        <div class="w-full grid grid-cols-1 md:grid-cols-3 gap-10 max-w-6xl">
+            
+            <!-- OPTION 1: CUSTOMER (ENLARGED) -->
+            <div onclick="openCustomerAuthModal()" class="glass-panel p-10 rounded-[2.5rem] role-card-hover cursor-pointer flex flex-col justify-between space-y-10 group bg-slate-900/85 border-amber-400/30">
+                <div class="space-y-6">
+                    <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950 flex items-center justify-center text-4xl group-hover:scale-110 group-hover:rotate-3 transition shadow-2xl shadow-amber-400/30">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase font-mono font-bold tracking-widest text-amber-400 block mb-2">Option 1</span>
+                        <h2 class="font-heading text-3xl font-extrabold text-white group-hover:text-amber-300 transition">Customer Portal</h2>
+                        <p class="text-sm sm:text-base text-slate-300 mt-3 leading-relaxed">
+                            Track shipment live map, view exact weather delay reasons, mudslide diagnostic matrix, and courier contact details.
+                        </p>
+                    </div>
+                </div>
+                <div class="pt-6 border-t border-slate-800/80 flex items-center justify-between text-sm font-bold text-amber-400 group-hover:text-yellow-300">
+                    <span>Track with Captcha & Waybill ID</span>
+                    <i class="fa-solid fa-arrow-right text-base group-hover:translate-x-2 transition"></i>
+                </div>
+            </div>
+
+            <!-- OPTION 2: SUPPLIER / FLEET ADMIN (ENLARGED) -->
+            <div onclick="openSupplierAuthModal()" class="glass-panel p-10 rounded-[2.5rem] role-card-hover cursor-pointer flex flex-col justify-between space-y-10 group bg-slate-900/85 border-amber-400/30">
+                <div class="space-y-6">
+                    <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-300 text-slate-950 flex items-center justify-center text-4xl group-hover:scale-110 group-hover:rotate-3 transition shadow-2xl shadow-emerald-500/30">
+                        <i class="fa-solid fa-warehouse"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase font-mono font-bold tracking-widest text-emerald-400 block mb-2">Option 2</span>
+                        <h2 class="font-heading text-3xl font-extrabold text-white group-hover:text-emerald-300 transition">Supplier / Fleet Admin</h2>
+                        <p class="text-sm sm:text-base text-slate-300 mt-3 leading-relaxed">
+                            Operations Command Center: 5-corridor telemetry, driver-to-vehicle assignment matrix, risk predictor, and SOS mesh dispatch.
+                        </p>
+                    </div>
+                </div>
+                <div class="pt-6 border-t border-slate-800/80 flex items-center justify-between text-sm font-bold text-emerald-400 group-hover:text-emerald-300">
+                    <span>Login or Create Account</span>
+                    <i class="fa-solid fa-arrow-right text-base group-hover:translate-x-2 transition"></i>
+                </div>
+            </div>
+
+            <!-- OPTION 3: DRIVER (ENLARGED) -->
+            <div onclick="openDriverAuthModal()" class="glass-panel p-10 rounded-[2.5rem] role-card-hover cursor-pointer flex flex-col justify-between space-y-10 group bg-slate-900/85 border-amber-400/30">
+                <div class="space-y-6">
+                    <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-red-500 to-amber-400 text-slate-950 flex items-center justify-center text-4xl group-hover:scale-110 group-hover:rotate-3 transition shadow-2xl shadow-red-500/30">
+                        <i class="fa-solid fa-truck-monster"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase font-mono font-bold tracking-widest text-red-400 block mb-2">Option 3</span>
+                        <h2 class="font-heading text-3xl font-extrabold text-white group-hover:text-red-300 transition">Driver Rescue Cockpit</h2>
+                        <p class="text-sm sm:text-base text-slate-300 mt-3 leading-relaxed">
+                            Tactical cockpit with vehicle registration, 1-tap SOS panic button, vehicle diagnostic gauges, and in-cockpit rescue alarm.
+                        </p>
+                    </div>
+                </div>
+                <div class="pt-6 border-t border-slate-800/80 flex items-center justify-between text-sm font-bold text-red-400 group-hover:text-red-300">
+                    <span>Login or Create Account</span>
+                    <i class="fa-solid fa-arrow-right text-base group-hover:translate-x-2 transition"></i>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========================================================================================= -->
+    <!-- VIEW 2: CUSTOMER DASHBOARD (EXPANDED & HIGH-CONTRAST) -->
+    <!-- ========================================================================================= -->
+    <div id="view-customer" class="flex-1 w-full max-w-[1700px] mx-auto p-6 lg:p-8 flex-col space-y-8 hidden">
+        <div class="glass-panel-glow p-8 rounded-[2.5rem] flex flex-wrap items-center justify-between gap-6">
+            <div class="space-y-2">
+                <span class="px-4 py-1 text-xs font-mono font-bold bg-amber-400 text-slate-950 rounded-full uppercase tracking-wider shadow-md">Customer Tracking Portal</span>
+                <h2 class="font-heading text-4xl font-black text-white">Welcome back, <span id="customer-name-heading" class="text-amber-400">Ananya Sharma</span>!</h2>
+                <p class="text-sm sm:text-base text-slate-200">Tracking Package Waybill: <span class="font-mono font-bold text-amber-400 text-base" id="customer-waybill-label">NER-804-MED-PERISHABLE</span></p>
+            </div>
+            <div class="flex items-center space-x-4 flex-wrap gap-3">
+                <button onclick="printSLACertificate()" class="px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-200 text-sm font-bold rounded-2xl border border-slate-700 transition flex items-center space-x-2.5 shadow-lg">
+                    <i class="fa-solid fa-file-contract text-amber-400 text-base"></i>
+                    <span>Export SLA Certificate 📄</span>
+                </button>
+                <a id="gmaps-customer-link" href="https://www.google.com/maps/dir/?api=1&origin=Guwahati,Assam&destination=Shillong,Meghalaya" target="_blank" class="px-6 py-3.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 text-sm font-black rounded-2xl transition flex items-center space-x-2.5 shadow-xl shadow-amber-400/25">
+                    <i class="fa-solid fa-map-location text-slate-950 text-base"></i>
+                    <span>Open Live Route on Google Maps 📍</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="glass-panel p-8 rounded-[2.5rem] border-2 border-amber-400/60 bg-gradient-to-r from-amber-950/60 via-slate-900/90 to-red-950/40 space-y-6 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-2xl shadow-xl shadow-amber-400/30">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-2xl font-bold text-white">Why is My Delivery Delayed? Live Diagnostic Matrix</h3>
+                        <p class="text-sm text-amber-300">Real-time terrain telemetry explanation for your package</p>
+                    </div>
+                </div>
+                <span id="customer-delay-badge" class="px-5 py-2 text-sm font-bold rounded-full bg-amber-400 text-slate-950 font-mono shadow-md">
+                    +35 MINS DELAY DETECTED
+                </span>
+            </div>
+
+            <div class="p-6 bg-slate-950/85 border border-amber-400/40 rounded-3xl space-y-2.5 text-sm sm:text-base text-slate-200 shadow-inner">
+                <strong class="text-amber-400 text-lg block flex items-center font-heading">
+                    <i class="fa-solid fa-volcano mr-3"></i> Primary Cause: Sonapur Mountain Mudslide & Torrential Rain
+                </strong>
+                <p id="customer-delay-reason-text" class="leading-relaxed text-slate-300">
+                    Your delivery truck encountered heavy monsoon rainfall of <strong>38 mm/hr</strong> resulting in a minor mud accumulation on NH6 Sonapur segment (Km 32). Road clearance managed by BRO.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
+                <div class="p-5 bg-slate-900/90 border border-slate-800 rounded-3xl space-y-2">
+                    <span class="text-blue-400 font-semibold block text-xs"><i class="fa-solid fa-cloud-showers-heavy mr-2"></i> Weather Impact</span>
+                    <strong class="text-white text-base block font-heading">Heavy Rain (38 mm/hr)</strong>
+                    <span class="text-slate-400 text-xs block">Reduced visibility in mountain pass. Driver maintaining safe speed.</span>
+                </div>
+
+                <div class="p-5 bg-slate-900/90 border border-slate-800 rounded-3xl space-y-2">
+                    <span class="text-red-400 font-semibold block text-xs"><i class="fa-solid fa-road-barrier mr-2"></i> Road Obstruction</span>
+                    <strong class="text-white text-base block font-heading">Sonapur Mudslide (Km 32)</strong>
+                    <span class="text-slate-400 text-xs block">Bypassed via Umroi road to ensure smooth movement.</span>
+                </div>
+
+                <div class="p-5 bg-slate-900/90 border border-slate-800 rounded-3xl space-y-2">
+                    <span class="text-emerald-400 font-semibold block text-xs"><i class="fa-solid fa-shield-halved mr-2"></i> Cargo Safety Status</span>
+                    <strong class="text-emerald-300 text-base block font-heading">Cold Storage Active (2°C)</strong>
+                    <span class="text-slate-400 text-xs block">Battery backup verified. Package temperature is 100% safe.</span>
+                </div>
+
+                <div class="p-5 bg-slate-900/90 border border-slate-800 rounded-3xl space-y-2">
+                    <span class="text-amber-400 font-semibold block text-xs"><i class="fa-solid fa-clock mr-2"></i> Revised Arrival Time</span>
+                    <strong class="text-amber-300 text-base block font-heading" id="customer-revised-clock">18:45 PM Today</strong>
+                    <span class="text-slate-400 text-xs block">Guaranteed SLA delivery window maintained.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-7 space-y-8">
+                <div class="glass-panel p-8 rounded-[2.5rem] space-y-6">
+                    <h3 class="font-heading text-xl font-bold text-white flex items-center">
+                        <i class="fa-solid fa-truck-ramp-box text-amber-400 mr-3"></i> Shipment Journey Timeline
+                    </h3>
+                    <div class="space-y-6 pl-2 text-sm">
+                        <div class="flex items-start space-x-5">
+                            <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm flex-shrink-0 mt-0.5 shadow-xl shadow-emerald-600/40"><i class="fa-solid fa-check"></i></div>
+                            <div>
+                                <strong class="text-white text-base block font-heading">Package Dispatched from Hub</strong>
+                                <span class="text-slate-400 text-xs">Today at 08:30 AM • Verified Cold-Chain</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-5">
+                            <div class="w-9 h-9 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-sm flex-shrink-0 mt-0.5 font-bold shadow-xl shadow-amber-400/40"><i class="fa-solid fa-route"></i></div>
+                            <div>
+                                <strong class="text-amber-300 text-base block font-heading">AI Route Hazard Assessment Triggered</strong>
+                                <span class="text-slate-400 text-xs">Hill cut detected 78% Landslide risk. Auto-bypassing via safe alternate route.</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-5 opacity-65">
+                            <div class="w-9 h-9 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-sm flex-shrink-0 mt-0.5"><i class="fa-solid fa-house-circle-check"></i></div>
+                            <div>
+                                <strong class="text-slate-300 text-base block font-heading">Estimated Arrival at Destination Hub</strong>
+                                <span class="text-slate-400 text-xs">Today at 18:45 PM (Guaranteed SLA)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-5 space-y-8">
+                <div class="glass-panel p-8 rounded-[2.5rem] space-y-6">
+                    <h3 class="font-heading text-xl font-bold text-white">Assigned Fleet Courier</h3>
+                    <div class="flex items-center space-x-5">
+                        <div class="w-16 h-16 rounded-3xl bg-amber-400 text-slate-950 flex items-center justify-center text-3xl font-black font-heading shadow-xl shadow-amber-400/30" id="customer-driver-avatar">
+                            BT
+                        </div>
+                        <div class="flex-1 text-sm">
+                            <strong class="text-white text-lg block font-heading" id="customer-driver-name">Bikram Thapa</strong>
+                            <span class="text-slate-400 text-xs" id="customer-driver-vehicle">4x4 All-Terrain Logistics Vehicle #NER-804</span>
+                            <span class="text-emerald-400 font-semibold block mt-1 text-xs">⭐ 4.98 Rating • Certified Mountain Driver</span>
+                        </div>
+                    </div>
+                    <button onclick="alert('Calling Courier Driver (+91 98640-12345)...')" class="w-full py-4 bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black text-sm rounded-2xl shadow-xl transition flex items-center justify-center space-x-3">
+                        <i class="fa-solid fa-phone text-base"></i>
+                        <span>Call Courier Driver</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-3 rounded-[2.5rem] h-[350px]">
+                    <div id="customer-map" class="map-canvas rounded-3xl"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================================= -->
+    <!-- VIEW 3: SUPPLIER / ADMIN OPERATIONS COMMAND CENTER (SCALED & EXPANDED) -->
+    <!-- ========================================================================================= -->
+    <div id="view-admin" class="flex-1 w-full max-w-[1920px] mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 hidden">
+        
+        <!-- ADMIN CONTINUOUS SOS EMERGENCY BANNER -->
+        <div id="admin-sos-alert-box" class="lg:col-span-12 glass-panel p-6 rounded-[2rem] border-2 border-red-600 admin-sos-alert-flash text-white flex flex-wrap items-center justify-between gap-5 hidden shadow-2xl">
+            <div class="flex items-center space-x-5">
+                <div class="w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center text-white text-3xl radar-beacon sos-active-btn">
+                    <i class="fa-solid fa-truck-burst"></i>
+                </div>
+                <div>
+                    <strong class="font-heading text-lg sm:text-xl font-black text-white block uppercase tracking-wider">
+                        🚨 EMERGENCY SOS DRIVER ALERT: VEHICLE TRAPPED IN MUDSLIDE!
+                    </strong>
+                    <p class="text-sm text-red-100 mt-1" id="admin-sos-details">
+                        Truck <strong>#NER-TRUCK-804</strong> (Driver Bikram Thapa) is stuck at <strong>NH6 Sonapur Km 32 (Lat: 25.8800, Lng: 91.8800)</strong>. Cold-chain cargo temperature active.
+                    </p>
+                </div>
+            </div>
+
+            <button onclick="confirmAdminSOS()" class="px-8 py-4 bg-red-600 hover:bg-red-500 text-white font-black text-sm rounded-2xl shadow-2xl transition flex items-center space-x-3 uppercase tracking-wider">
+                <i class="fa-solid fa-truck-pickup text-base"></i>
+                <span>Acknowledge SOS & Assign Rescue Vehicle 🚨</span>
+            </button>
+        </div>
+
+        <!-- ADMIN FLEET METRICS COUNTERS (LARGE SIZE) -->
+        <div class="lg:col-span-12 grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm">
+            <div class="glass-panel p-5 rounded-3xl border border-slate-800 flex items-center space-x-4">
+                <div class="w-14 h-14 rounded-2xl bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">
+                    <i class="fa-solid fa-truck"></i>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase font-bold block">Ready for Work</span>
+                    <strong class="text-2xl font-mono font-extrabold text-emerald-400">12 Vehicles</strong>
+                    <span class="text-xs text-slate-400 block">Standing Active Base</span>
+                </div>
+            </div>
+
+            <div class="glass-panel p-5 rounded-3xl border border-slate-800 flex items-center space-x-4">
+                <div class="w-14 h-14 rounded-2xl bg-amber-950 border border-amber-800 flex items-center justify-center text-amber-400 text-2xl shadow-inner">
+                    <i class="fa-solid fa-truck-ramp-box"></i>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase font-bold block">In Delivery Work</span>
+                    <strong class="text-2xl font-mono font-extrabold text-amber-400">8 Vehicles</strong>
+                    <span class="text-xs text-slate-400 block">En Route Corridors</span>
+                </div>
+            </div>
+
+            <div class="glass-panel p-5 rounded-3xl border border-slate-800 flex items-center space-x-4">
+                <div class="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 text-2xl shadow-inner">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase font-bold block">In Garage</span>
+                    <strong class="text-2xl font-mono font-extrabold text-slate-300">3 Vehicles</strong>
+                    <span class="text-xs text-slate-400 block">Garage Servicing</span>
+                </div>
+            </div>
+
+            <div class="glass-panel p-5 rounded-3xl border border-slate-800 flex items-center space-x-4">
+                <div class="w-14 h-14 rounded-2xl bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-400 text-2xl shadow-inner">
+                    <i class="fa-solid fa-truck-arrow-right"></i>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase font-bold block">Returning Empty</span>
+                    <strong class="text-2xl font-mono font-extrabold text-cyan-300">4 Vehicles</strong>
+                    <span class="text-xs text-slate-400 block">Return Transit Base</span>
+                </div>
+            </div>
+
+            <div class="glass-panel p-5 rounded-3xl border border-slate-800 flex items-center space-x-4">
+                <div class="w-14 h-14 rounded-2xl bg-purple-950 border border-purple-800 flex items-center justify-center text-purple-400 text-2xl shadow-inner">
+                    <i class="fa-solid fa-id-card-clip"></i>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 uppercase font-bold block">Active Drivers</span>
+                    <strong class="text-2xl font-mono font-extrabold text-purple-300">15 Drivers</strong>
+                    <span class="text-xs text-slate-400 block">Logged & Assigned</span>
+                </div>
+            </div>
+        </div>
+
+        <section class="lg:col-span-3 flex flex-col space-y-6">
+            <div class="glass-panel p-6 rounded-[2rem] flex flex-col space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h2 class="font-heading text-base font-bold text-white flex items-center">
+                        <i class="fa-solid fa-route text-amber-400 mr-2.5"></i> NER Delivery Corridors
+                    </h2>
+                    <span class="text-xs text-slate-400 font-mono">5 Monitored</span>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-400">Select Active Corridor:</label>
+                    <select id="route-select" onchange="switchRoute(this.value)" class="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm font-medium rounded-2xl p-3.5 focus:border-amber-400 focus:outline-none">
+                        <option value="guwahati-shillong">Route 1: Guwahati ↔ Shillong (NH6 - 98 km)</option>
+                        <option value="shillong-silchar">Route 2: Shillong ↔ Silchar (NH6 East - 215 km)</option>
+                        <option value="tezpur-tawang">Route 3: Tezpur ↔ Tawang (NH13 Highway - 320 km)</option>
+                        <option value="siliguri-gangtok">Route 4: Siliguri ↔ Gangtok (NH10 Sikkim - 114 km)</option>
+                        <option value="dimapur-kohima">Route 5: Dimapur ↔ Kohima (NH29 Nagaland - 74 km)</option>
+                    </select>
+                </div>
+
+                <button onclick="exportTelemetryReport()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-amber-400/50 text-amber-300 text-sm font-bold rounded-2xl transition text-center block shadow-md">
+                    <i class="fa-solid fa-download mr-2 text-amber-400"></i> Export Telemetry Data (JSON) 📊
+                </button>
+
+                <a id="gmaps-admin-link" href="https://www.google.com/maps/dir/?api=1&origin=Guwahati,Assam&destination=Shillong,Meghalaya" target="_blank" class="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-emerald-600/60 text-emerald-400 text-sm font-bold rounded-2xl transition text-center block shadow-md">
+                    <i class="fa-solid fa-map-location-dot mr-2"></i> Open Route in Google Maps 📍
+                </a>
+
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="bg-slate-950/90 border border-blue-900/60 rounded-2xl p-4 flex flex-col">
+                        <span class="text-xs uppercase font-bold text-blue-400 tracking-wider">Rain Probability</span>
+                        <div class="flex items-baseline justify-between mt-1">
+                            <span id="rain-percent-badge" class="text-2xl font-bold font-mono text-blue-300">85%</span>
+                            <i class="fa-solid fa-cloud-showers-heavy text-blue-400 text-lg"></i>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full mt-2.5 overflow-hidden">
+                            <div id="rain-bar" class="bg-blue-500 h-full rounded-full" style="width: 85%"></div>
+                        </div>
+                        <span id="rain-rate-text" class="text-xs text-slate-400 mt-1.5">Intensity: 38 mm/hr</span>
+                    </div>
+
+                    <div class="bg-slate-950/90 border border-red-900/60 rounded-2xl p-4 flex flex-col">
+                        <span class="text-xs uppercase font-bold text-red-400 tracking-wider">Landslide Risk</span>
+                        <div class="flex items-baseline justify-between mt-1">
+                            <span id="landslide-percent-badge" class="text-2xl font-bold font-mono text-red-400">78%</span>
+                            <i class="fa-solid fa-hill-rockslide text-red-400 text-lg"></i>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full mt-2.5 overflow-hidden">
+                            <div id="landslide-bar" class="bg-red-500 h-full rounded-full" style="width: 78%"></div>
+                        </div>
+                        <span id="landslide-status-text" class="text-xs text-red-300 font-semibold mt-1.5">CRITICAL HAZARD</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-[2rem] border border-purple-500/40 space-y-4 text-sm">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                    <h3 class="font-heading text-sm font-bold text-white uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-crystal-ball text-purple-400 mr-2.5"></i> Route Option Risk Predictor
+                    </h3>
+                    <span class="text-xs text-purple-300 font-mono">AI Predictive</span>
+                </div>
+                <div class="space-y-3">
+                    <label class="text-xs text-slate-400 block">Target Corridor:</label>
+                    <select id="predictor-route-select-admin" onchange="runRouteRiskPredictor(this.value, 'admin')" class="w-full bg-slate-950 border border-slate-700 text-white text-sm rounded-2xl p-3 focus:border-purple-500 focus:outline-none">
+                        <option value="guwahati-shillong">Guwahati ↔ Shillong (NH6)</option>
+                        <option value="shillong-silchar">Shillong ↔ Silchar (NH6 East)</option>
+                        <option value="tezpur-tawang">Tezpur ↔ Tawang (NH13)</option>
+                        <option value="siliguri-gangtok">Siliguri ↔ Gangtok (NH10)</option>
+                        <option value="dimapur-kohima">Dimapur ↔ Kohima (NH29)</option>
+                    </select>
+
+                    <div id="predictor-results-admin" class="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-2.5">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-400">Predicted Rain:</span>
+                            <span id="pred-rain-admin" class="font-bold text-blue-400 font-mono">85% Chance</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-400">Landslide Risk:</span>
+                            <span id="pred-slide-admin" class="font-bold text-red-400 font-mono">78% Risk</span>
+                        </div>
+                        <div class="flex justify-between items-center border-t border-slate-800 pt-2 text-sm">
+                            <span class="text-slate-400">Clearance Window:</span>
+                            <span id="pred-clearance-admin" class="font-bold text-amber-300 font-mono">45 Mins</span>
+                        </div>
+                        <div class="p-3 bg-emerald-950/70 border border-emerald-800 rounded-xl text-xs text-emerald-200">
+                            <strong>Bypass Reroute:</strong> <span id="pred-bypass-admin">Switch to Umroi Route (-60% risk reduction)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-5 rounded-[2rem] flex-1 flex flex-col space-y-3.5 min-h-[240px]">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                    <h3 class="font-heading text-sm font-bold text-white uppercase tracking-wider text-slate-300">
+                        <i class="fa-solid fa-layer-group text-amber-400 mr-2"></i> Route Segment Breakdown
+                    </h3>
+                    <span class="text-xs text-amber-400 font-mono">Live</span>
+                </div>
+
+                <div id="segment-list" class="space-y-2.5 overflow-y-auto max-h-[280px] pr-1"></div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-6 flex flex-col space-y-6">
+            <div class="glass-panel p-3 rounded-[2.5rem] flex-1 flex flex-col relative min-h-[420px]">
+                <div class="absolute top-5 left-5 right-5 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+                    <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center space-x-3 text-sm pointer-events-auto shadow-2xl">
+                        <span class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+                        <span class="font-semibold text-white">Active Corridor: <span id="map-corridor-title" class="text-amber-400">Guwahati ↔ Shillong NH6</span></span>
+                    </div>
+                </div>
+
+                <div id="admin-map" class="map-canvas rounded-3xl"></div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-[2rem] space-y-4 text-sm">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="font-heading text-base font-bold text-white uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-id-card text-purple-400 mr-2.5"></i> Active Driver-to-Vehicle Assignment Matrix
+                    </h3>
+                    <span class="text-xs text-slate-400">Which Driver is in Which Vehicle</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase">
+                                <th class="py-3 px-4">Driver Name</th>
+                                <th class="py-3 px-4">Assigned Vehicle #</th>
+                                <th class="py-3 px-4">Current Route / Duty Status</th>
+                                <th class="py-3 px-4 text-right">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm text-slate-200 divide-y divide-slate-800/60">
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Bikram Thapa</td>
+                                <td class="py-3.5 px-4 font-mono text-amber-400 font-bold">#NER-TRUCK-804</td>
+                                <td class="py-3.5 px-4">Guwahati ↔ Shillong (NH6)</td>
+                                <td class="py-3.5 px-4 text-right"><span class="px-3 py-1 bg-red-950 text-red-300 rounded-lg font-bold text-xs">In Delivery / SOS</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Pranjal Gogoi</td>
+                                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold">#NER-RECOVERY-01</td>
+                                <td class="py-3.5 px-4">4x4 Winch Rescue Standby</td>
+                                <td class="py-3.5 px-4 text-right"><span class="px-3 py-1 bg-emerald-950 text-emerald-300 rounded-lg font-bold text-xs">Ready for Work</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Doster Sangma</td>
+                                <td class="py-3.5 px-4 font-mono text-amber-400 font-bold">#NER-CARGO-102</td>
+                                <td class="py-3.5 px-4">Meghalaya Support Van</td>
+                                <td class="py-3.5 px-4 text-right"><span class="px-3 py-1 bg-amber-950 text-amber-300 rounded-lg font-bold text-xs">In Delivery Work</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Lobsang Dorjee</td>
+                                <td class="py-3.5 px-4 font-mono text-amber-400 font-bold">#NER-TRUCK-902</td>
+                                <td class="py-3.5 px-4">Tezpur ↔ Tawang (NH13)</td>
+                                <td class="py-3.5 px-4 text-right"><span class="px-3 py-1 bg-amber-950 text-amber-300 rounded-lg font-bold text-xs">In Delivery Work</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Karna Tamang</td>
+                                <td class="py-3.5 px-4 font-mono text-cyan-400 font-bold">#NER-TRUCK-105</td>
+                                <td class="py-3.5 px-4">Gangtok Return Corridor</td>
+                                <td class="py-3.5 px-4 text-right"><span class="px-3 py-1 bg-cyan-950 text-cyan-300 rounded-lg font-bold text-xs">Returning Empty</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Neiketuzo Kire</td>
+                                <td class="py-3.5 px-4 font-mono text-slate-400 font-bold">#NER-TRUCK-512</td>
+                                <td class="py-3.5 px-4">Kohima Base Garage</td>
+                                <td class="py-3.5 px-4 text-right"><span class="px-3 py-1 bg-slate-800 text-slate-300 rounded-lg font-bold text-xs">In Garage</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-3 flex flex-col space-y-6">
+            <div class="glass-panel p-6 rounded-[2rem] flex flex-col space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h2 class="font-heading text-base font-bold text-white flex items-center">
+                        <i class="fa-solid fa-turn-right text-emerald-400 mr-2.5"></i> Nearest Alternate Route
+                    </h2>
+                    <span class="px-3 py-1 text-xs font-bold rounded-xl bg-emerald-950 text-emerald-300 border border-emerald-800">OPTIMAL</span>
+                </div>
+
+                <div class="space-y-3 text-sm">
+                    <div class="p-4 bg-emerald-950/50 border border-emerald-700/60 rounded-2xl space-y-2.5">
+                        <div class="flex justify-between font-semibold text-emerald-300">
+                            <span>Suggested (Umroi Bypass)</span>
+                            <span class="text-emerald-400 font-mono font-bold">18% Risk</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-xs text-emerald-200">
+                            <div><span class="block text-slate-400">Distance</span><span class="font-bold">+12.4 km</span></div>
+                            <div><span class="block text-slate-400">Rain Risk</span><span class="font-bold text-emerald-400">-60%</span></div>
+                            <div><span class="block text-slate-400">Landslide</span><span class="font-bold text-emerald-400">-60%</span></div>
+                        </div>
+                    </div>
+
+                    <button onclick="applyReroute()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-2xl text-sm transition shadow-lg shadow-emerald-600/20">
+                        Switch Fleet to Safe Alternate
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-[2rem] flex flex-col space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="font-heading text-sm font-bold text-white uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-clock-rotate-left text-amber-400 mr-2.5"></i> Delivery Delay Calculator
+                    </h3>
+                    <span id="delay-status-badge" class="px-3 py-1 text-xs font-bold rounded-xl bg-slate-800 text-slate-400">NORMAL</span>
+                </div>
+
+                <div class="space-y-3 text-sm">
+                    <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 space-y-2.5">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Breakdown Delay:</span>
+                            <span id="delay-time-val" class="font-mono font-bold text-amber-300">+00 mins</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-white border-t border-slate-800 pt-2">
+                            <span>Revised Delivery Time:</span>
+                            <span id="revised-eta-val" class="font-mono text-amber-400 font-bold">18:45 PM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-[2rem] flex-1 flex flex-col space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="font-heading text-sm font-bold text-white uppercase tracking-wider">
+                        <i class="fa-solid fa-tower-broadcast text-red-400 mr-2.5"></i> SOS Mesh Rescue Network
+                    </h3>
+                    <span class="text-xs font-mono text-emerald-400">50km Radius</span>
+                </div>
+
+                <div id="nearby-vehicles-list" class="space-y-3 overflow-y-auto max-h-[240px] pr-1"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ========================================================================================= -->
+    <!-- VIEW 4: DRIVER RESCUE COCKPIT (SCALED & EXPANDED INSTRUMENT CLUSTER) -->
+    <!-- ========================================================================================= -->
+    <div id="view-driver" class="flex-1 w-full max-w-[1600px] mx-auto p-6 lg:p-8 flex-col space-y-8 hidden">
+        
+        <div class="glass-panel p-8 rounded-[2.5rem] border-2 border-amber-400/40 flex flex-wrap items-center justify-between gap-6 shadow-2xl">
+            <div class="space-y-2">
+                <span class="text-xs font-bold font-mono uppercase tracking-wider text-amber-400">Driver Active Status & Vehicle Registration</span>
+                <div class="flex items-center space-x-3">
+                    <strong class="text-white text-xl font-heading">Vehicle Assigned:</strong>
+                    <span id="driver-registered-vehicle-badge" class="font-mono font-extrabold text-amber-300 text-xl bg-amber-950/90 px-4 py-1 rounded-2xl border border-amber-600 shadow-inner">
+                        #NER-TRUCK-804
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4 flex-1 max-w-lg">
+                <input type="text" id="driver-veh-num-input" value="AS-01-HC-9904" placeholder="Enter Vehicle Number (e.g. AS-01-HC-9904)..." class="flex-1 bg-slate-950 border-2 border-slate-800 text-white font-mono text-sm rounded-2xl px-5 py-4 focus:border-amber-400 focus:outline-none">
+                <button onclick="registerDriverVehicle()" class="px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl transition flex items-center space-x-2.5 shadow-xl shadow-emerald-600/30">
+                    <i class="fa-solid fa-circle-check text-base"></i>
+                    <span>Set Active for Work</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="glass-panel-glow p-8 rounded-[2.5rem] flex flex-wrap items-center justify-between gap-6 border-2 border-red-500/40 shadow-2xl">
+            <div class="space-y-2">
+                <span class="px-4 py-1 text-xs font-bold font-mono bg-red-950 text-red-300 border border-red-800 rounded-full uppercase tracking-wider">Driver Rescue Cockpit</span>
+                <h2 class="font-heading text-4xl font-black text-white" id="driver-cockpit-veh-title">Vehicle #NER-TRUCK-804</h2>
+                <p class="text-sm sm:text-base text-slate-200">Driver: <span class="font-bold text-white">Bikram Thapa</span> | Destination: <span class="text-amber-400 font-bold">Shillong Logistics Hub</span></p>
+            </div>
+
+            <button onclick="triggerDriverSOS()" id="driver-panic-btn" class="px-10 py-5 bg-red-600 hover:bg-red-500 text-white font-black text-base rounded-3xl shadow-2xl sos-active-btn flex items-center space-x-4 transition uppercase tracking-wider transform hover:scale-105">
+                <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+                <span id="driver-panic-text">🚨 EMERGENCY SOS! I AM STUCK</span>
+            </button>
+        </div>
+
+        <!-- OVERSIZED GAUGES INSTRUMENT CLUSTER -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-5 text-sm">
+            <div class="glass-panel p-6 rounded-3xl border border-slate-800 space-y-2">
+                <span class="text-slate-400 text-xs uppercase font-bold block">Vehicle Speed</span>
+                <span class="font-mono text-3xl font-extrabold text-amber-400 block">42 km/h</span>
+                <span class="text-xs text-emerald-400 block font-semibold">Normal Mountain Limit</span>
+            </div>
+            <div class="glass-panel p-6 rounded-3xl border border-slate-800 space-y-2">
+                <span class="text-slate-400 text-xs uppercase font-bold block">Fuel Level</span>
+                <span class="font-mono text-3xl font-extrabold text-emerald-400 block">68%</span>
+                <span class="text-xs text-slate-400 block">Range: ~240 km</span>
+            </div>
+            <div class="glass-panel p-6 rounded-3xl border border-slate-800 space-y-2">
+                <span class="text-slate-400 text-xs uppercase font-bold block">Cold Storage Batt.</span>
+                <span class="font-mono text-3xl font-extrabold text-emerald-400 block">94%</span>
+                <span class="text-xs text-emerald-300 block font-semibold">6.2 Hours Endurance</span>
+            </div>
+            <div class="glass-panel p-6 rounded-3xl border border-slate-800 space-y-2">
+                <span class="text-slate-400 text-xs uppercase font-bold block">Engine Temp</span>
+                <span class="font-mono text-3xl font-extrabold text-amber-300 block">88°C</span>
+                <span class="text-xs text-slate-400 block">Optimal Operating</span>
+            </div>
+            <div class="glass-panel p-6 rounded-3xl border border-slate-800 space-y-2">
+                <span class="text-slate-400 text-xs uppercase font-bold block">Tire Pressure</span>
+                <span class="font-mono text-3xl font-extrabold text-slate-200 block">32 PSI</span>
+                <span class="text-xs text-emerald-400 block font-semibold">All-Terrain Traction</span>
+            </div>
+        </div>
+
+        <div class="glass-panel p-8 rounded-[2.5rem] border border-purple-500/50 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <h3 class="font-heading text-lg font-bold text-white uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-crystal-ball text-purple-400 mr-3"></i> Driver In-Cockpit Route Option Risk Predictor
+                </h3>
+                <span class="text-xs text-purple-300 font-mono">Live Hazard Calculator</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                <div class="space-y-3">
+                    <label class="text-xs text-slate-300 block font-semibold">Choose Target Corridor to Calculate Risk:</label>
+                    <select id="predictor-route-select-driver" onchange="runRouteRiskPredictor(this.value, 'driver')" class="w-full bg-slate-950 border border-slate-700 text-white text-sm rounded-2xl p-4 focus:border-purple-500 focus:outline-none">
+                        <option value="guwahati-shillong">Guwahati ↔ Shillong (NH6)</option>
+                        <option value="shillong-silchar">Shillong ↔ Silchar (NH6 East)</option>
+                        <option value="tezpur-tawang">Tezpur ↔ Tawang (NH13)</option>
+                        <option value="siliguri-gangtok">Siliguri ↔ Gangtok (NH10)</option>
+                        <option value="dimapur-kohima">Dimapur ↔ Kohima (NH29)</option>
+                    </select>
+                    <span class="text-xs text-slate-400 block">Select corridor to view AI rain, landslide, and mud clearance window predictions.</span>
+                </div>
+
+                <div id="predictor-results-driver" class="p-5 bg-slate-950 border border-slate-800 rounded-3xl space-y-3">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400">Predicted Rain:</span>
+                        <span id="pred-rain-driver" class="font-bold text-blue-400 font-mono text-base">85% Chance</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400">Landslide Risk:</span>
+                        <span id="pred-slide-driver" class="font-bold text-red-400 font-mono text-base">78% Risk</span>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-slate-800 pt-2 text-sm">
+                        <span class="text-slate-400">Clearance Window:</span>
+                        <span id="pred-clearance-driver" class="font-bold text-amber-300 font-mono text-base">45 Mins</span>
+                    </div>
+                    <div class="p-3.5 bg-emerald-950/70 border border-emerald-800 rounded-2xl text-xs text-emerald-200">
+                        <strong>Recommended Bypass:</strong> <span id="pred-bypass-driver">Switch to Umroi Route (-60% risk reduction)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="driver-rescue-assignment-card" class="glass-panel p-8 rounded-[2.5rem] border-2 border-red-600 admin-sos-alert-flash space-y-6 shadow-2xl hidden">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center text-white text-3xl radar-beacon sos-active-btn">
+                        <i class="fa-solid fa-truck-pickup"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-xl font-extrabold text-white uppercase tracking-wider">🚨 EMERGENCY RESCUE ASSIGNMENT ALERT!</h3>
+                        <p class="text-sm text-red-200">Admin has assigned you to rescue stuck vehicle #NER-TRUCK-804. Alarm active continuously!</p>
+                    </div>
+                </div>
+                <span class="px-5 py-1.5 bg-red-950 text-red-300 border border-red-700 font-mono text-sm font-bold rounded-full animate-pulse">
+                    ALARM RINGING 🔔
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm bg-slate-950 p-6 border border-slate-800 rounded-3xl">
+                <div>
+                    <span class="text-slate-400 text-xs block">Target Stuck Vehicle</span>
+                    <strong class="text-amber-400 text-lg block font-mono">#NER-TRUCK-804</strong>
+                    <span class="text-slate-300 text-xs">Driver: Bikram Thapa</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 text-xs block">Stuck Coordinates & Location</span>
+                    <strong class="text-red-400 text-lg block font-mono">NH6 Sonapur (25.8800, 91.8800)</strong>
+                    <span class="text-slate-300 text-xs">Trapped in mountain mudslide</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 text-xs block">Fastest Route to Reach</span>
+                    <strong class="text-emerald-400 text-lg block font-heading">Via Umroi Bypass (6.4 km)</strong>
+                    <span class="text-emerald-300 text-xs font-bold">Estimated Arrival: 14 Mins</span>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-5 pt-2">
+                <a href="https://www.google.com/maps/dir/?api=1&destination=25.8800,91.8800" target="_blank" class="px-6 py-4 bg-slate-900 hover:bg-slate-800 border border-amber-400/50 text-amber-300 font-bold rounded-2xl text-sm flex items-center space-x-2.5">
+                    <i class="fa-solid fa-map-location-dot text-amber-400 text-base"></i>
+                    <span>Open Live Route on Google Maps 📍</span>
+                </a>
+
+                <button onclick="acceptRescueMissionFromDriverPanel()" class="flex-1 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-2xl transition flex items-center justify-center space-x-3 uppercase tracking-wider">
+                    <i class="fa-solid fa-circle-check text-xl"></i>
+                    <span>ACCEPT RESCUE MISSION & SILENCE ALARM</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-8 glass-panel p-4 rounded-[2.5rem] h-[500px] relative">
+                <div class="absolute top-5 left-5 z-20 glass-panel px-5 py-2.5 rounded-2xl text-sm font-bold text-white flex items-center space-x-3 shadow-xl">
+                    <span class="w-3.5 h-3.5 rounded-full bg-red-500 radar-beacon"></span>
+                    <span>Stuck GPS Marker: <span class="text-red-400 font-mono">NH6 Sonapur (25.8800, 91.8800)</span></span>
+                </div>
+                <div id="driver-map" class="map-canvas rounded-3xl"></div>
+            </div>
+
+            <div class="lg:col-span-4 space-y-8">
+                <div class="glass-panel p-8 rounded-[2.5rem] space-y-5">
+                    <h3 class="font-heading text-lg font-bold text-white flex items-center">
+                        <i class="fa-solid fa-compass text-amber-400 mr-3"></i> Rescue Status & Reroute Advice
+                    </h3>
+                    <div id="driver-rescue-status-box" class="p-5 bg-slate-950 border border-slate-800 rounded-3xl space-y-2.5 text-sm">
+                        <span class="font-bold text-amber-400 block text-sm"><i class="fa-solid fa-triangle-exclamation mr-2"></i> NH6 Sonapur Landslide Warning (78% Risk)</span>
+                        <p class="text-slate-300">If stuck, press SOS panic button. Admin and nearby helper vehicles will receive continuous live location telemetry.</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-8 rounded-[2.5rem] space-y-5">
+                    <h3 class="font-heading text-lg font-bold text-white flex items-center">
+                        <i class="fa-solid fa-wifi text-emerald-400 mr-3"></i> Sub-GHz SOS Radio Mesh Signal
+                    </h3>
+                    <div class="p-5 bg-slate-950 border border-slate-800 rounded-3xl text-sm space-y-3">
+                        <div class="flex justify-between text-slate-300"><span>Mesh Link Quality:</span><span class="font-bold text-emerald-400">98% Strong</span></div>
+                        <div class="flex justify-between text-slate-300"><span>Nearest Rescue Unit:</span><span class="font-bold text-amber-400">NER-RECOVERY-01 (6.4 km away)</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN SOS NEARBY VEHICLES DISPATCH POPUP MODAL (ENLARGED) -->
+    <div id="modal-admin-sos-dispatch" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 hidden">
+        <div class="glass-panel-glow w-full max-w-2xl rounded-[2.5rem] flex flex-col p-8 space-y-6 border-2 border-red-500 admin-sos-alert-flash shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-5">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center text-white text-3xl radar-beacon sos-active-btn">
+                        <i class="fa-solid fa-truck-pickup"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-xl font-extrabold text-white uppercase tracking-wider">🚨 ADMIN SOS MESH DISPATCH - NEARBY VEHICLES</h3>
+                        <p class="text-sm text-red-200">Select a nearby vehicle to dispatch help for stuck truck #NER-TRUCK-804</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('modal-admin-sos-dispatch').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="p-5 bg-slate-950 border border-slate-800 rounded-2xl space-y-2 text-sm text-slate-200">
+                <span class="font-bold text-red-400 block text-base">Stuck Location: NH6 Sonapur Km 32 (Lat: 25.8800, Lng: 91.8800)</span>
+                <span class="text-slate-400 block text-xs">Scanning 50km Mesh Radius for ready recovery units...</span>
+            </div>
+
+            <div class="space-y-4">
+                <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Available Nearby Help Vehicles:</h4>
+                <div class="space-y-4 max-h-[320px] overflow-y-auto pr-1">
+                    <div class="p-5 bg-slate-900 border border-slate-800 rounded-3xl flex items-center justify-between text-sm">
+                        <div class="space-y-1.5">
+                            <strong class="text-amber-300 text-lg block font-heading">NER-RECOVERY-01 (4x4 Offroad Winch)</strong>
+                            <span class="text-slate-400 text-xs block">Driver: Bikram Thapa • Mobile: +91 98640-12345</span>
+                            <span class="text-emerald-400 font-bold text-xs block">Distance: 6.4 km away • ETA: 14 mins</span>
+                        </div>
+                        <button onclick="dispatchHelperVehicle('NER-RECOVERY-01'); document.getElementById('modal-admin-sos-dispatch').classList.add('hidden')" class="px-6 py-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-2xl text-xs shadow-xl transition">
+                            ASSIGN & DISPATCH 🚨
+                        </button>
+                    </div>
+
+                    <div class="p-5 bg-slate-900 border border-slate-800 rounded-3xl flex items-center justify-between text-sm">
+                        <div class="space-y-1.5">
+                            <strong class="text-amber-300 text-lg block font-heading">NER-TOW-409 (Heavy Hydraulic Towing)</strong>
+                            <span class="text-slate-400 text-xs block">Driver: Pranjal Gogoi • Mobile: +91 94350-98765</span>
+                            <span class="text-emerald-400 font-bold text-xs block">Distance: 12.8 km away • ETA: 24 mins</span>
+                        </div>
+                        <button onclick="dispatchHelperVehicle('NER-TOW-409'); document.getElementById('modal-admin-sos-dispatch').classList.add('hidden')" class="px-6 py-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-2xl text-xs shadow-xl transition">
+                            ASSIGN & DISPATCH 🚨
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HELPER RESCUE DISPATCH MODAL OVERLAY -->
+    <div id="modal-helper-rescue-dispatch" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 hidden">
+        <div class="glass-panel-glow w-full max-w-xl rounded-[2.5rem] flex flex-col p-8 space-y-6 border-2 border-red-500 alert-flash shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-5">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center text-white text-3xl radar-beacon sos-active-btn">
+                        <i class="fa-solid fa-truck-pickup"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-xl font-extrabold text-white uppercase tracking-wider">🚨 EMERGENCY RESCUE DISPATCH ASSIGNMENT</h3>
+                        <p class="text-sm text-red-200">Admin has assigned you to rescue stuck vehicle #NER-TRUCK-804!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-950 p-6 border border-slate-800 rounded-3xl space-y-4 text-sm">
+                <div class="flex justify-between border-b border-slate-800 pb-3">
+                    <span class="text-slate-400">Stuck Target Vehicle:</span>
+                    <span class="font-mono font-bold text-amber-400 text-base">NER-TRUCK-804 (Bikram Thapa)</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-800 pb-3">
+                    <span class="text-slate-400">Stuck Coordinates:</span>
+                    <span class="font-mono text-red-400 font-bold text-base">NH6 Sonapur Km 32 (25.8800, 91.8800)</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-800 pb-3">
+                    <span class="text-slate-400">Fastest Rescue Route:</span>
+                    <span class="font-bold text-emerald-400">Via Umroi Bypass Cutoff (6.4 km • 14 Mins ETA)</span>
+                </div>
+
+                <a href="https://www.google.com/maps/dir/?api=1&destination=25.8800,91.8800" target="_blank" class="w-full py-3.5 bg-slate-900 hover:bg-slate-800 border border-amber-400/50 text-amber-300 font-bold rounded-2xl text-center block">
+                    <i class="fa-solid fa-location-arrow mr-2"></i> Open Navigation to Stuck Truck on Google Maps 📍
+                </a>
+            </div>
+
+            <button onclick="acceptRescueMissionFromDriverPanel()" class="w-full py-5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-base rounded-2xl shadow-2xl transition flex items-center justify-center space-x-3 uppercase tracking-wider">
+                <i class="fa-solid fa-circle-check text-2xl"></i>
+                <span>ACCEPT RESCUE MISSION & STOP ALARM NOTIFICATION</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- AUTH MODALS (EXPANDED 5/5) -->
+    <div id="modal-customer-auth" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 hidden">
+        <div class="glass-panel-glow w-full max-w-lg rounded-[2.5rem] flex flex-col p-8 space-y-6 border border-amber-400/50 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-5">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-2xl">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-xl font-bold text-white">Customer Verification</h3>
+                        <p class="text-xs text-slate-400">Track Package & Weather Delay Reasons</p>
+                    </div>
+                </div>
+                <button onclick="closeCustomerAuthModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="space-y-5 text-sm">
+                <div>
+                    <label class="text-xs text-slate-300 font-semibold block mb-2">Enter Waybill / Tracking ID</label>
+                    <input type="text" id="cust-track-input" value="NER-804" placeholder="e.g. NER-804, NER-902, NER-105" class="w-full bg-slate-950 border border-slate-800 text-white font-mono text-base rounded-2xl p-4 focus:border-amber-400 focus:outline-none">
+                    <span class="text-xs text-slate-400 mt-2 block">Try demo IDs: <strong>NER-804</strong> (Ananya), <strong>NER-902</strong> (Tenzing), <strong>NER-105</strong> (Priya)</span>
+                </div>
+
+                <div class="space-y-3.5 bg-slate-950 p-5 border border-slate-800 rounded-3xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-400 font-medium">Security Captcha Challenge:</span>
+                        <button onclick="generateCaptcha()" class="text-amber-400 hover:text-yellow-300 text-xs font-semibold flex items-center space-x-1.5">
+                            <i class="fa-solid fa-rotate-right"></i>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                    <div id="captcha-display" class="captcha-box py-4 px-6 text-center text-2xl font-bold text-amber-400 rounded-2xl tracking-widest shadow-inner">
+                        X 7 K 9 M
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1.5">Type the 5-character Captcha code above:</label>
+                        <input type="text" id="captcha-user-input" placeholder="Type captcha code..." class="w-full bg-slate-900 border border-slate-700 text-white font-mono uppercase text-sm rounded-2xl p-3.5 focus:border-amber-400 focus:outline-none">
+                    </div>
+                </div>
+
+                <button onclick="verifyCustomerCaptcha()" class="w-full py-4 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-sm rounded-2xl shadow-xl transition uppercase tracking-wider">
+                    Verify Captcha & View Customer Panel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-supplier-auth" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 hidden">
+        <div class="glass-panel-glow w-full max-w-lg rounded-[2.5rem] flex flex-col p-8 space-y-6 border border-emerald-500/50 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-5">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-950 border border-emerald-700 flex items-center justify-center text-emerald-400 text-2xl">
+                        <i class="fa-solid fa-warehouse"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-xl font-bold text-white">Supplier Admin Portal</h3>
+                        <p class="text-xs text-slate-400">Fleet Operations Command Center</p>
+                    </div>
+                </div>
+                <button onclick="closeSupplierAuthModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 border border-slate-800 rounded-2xl text-xs font-semibold">
+                <button onclick="switchSupplierTab('login')" id="tab-sup-login" class="py-3 rounded-xl bg-emerald-600 text-white font-bold">Login</button>
+                <button onclick="switchSupplierTab('register')" id="tab-sup-reg" class="py-3 rounded-xl text-slate-400 hover:text-white font-bold">Create Account</button>
+            </div>
+
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1.5">Company / Supplier Email</label>
+                    <input type="email" id="sup-email" value="supplier@ner-logistics.com" class="w-full bg-slate-950 border border-slate-800 text-white rounded-2xl p-4 text-sm focus:border-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1.5">Password</label>
+                    <input type="password" id="sup-pass" value="••••••••" class="w-full bg-slate-950 border border-slate-800 text-white rounded-2xl p-4 text-sm focus:border-emerald-500 focus:outline-none">
+                </div>
+                <button onclick="submitSupplierAuth()" class="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-2xl shadow-xl transition uppercase tracking-wider">
+                    Access Supplier Operations Panel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-driver-auth" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 hidden">
+        <div class="glass-panel-glow w-full max-w-lg rounded-[2.5rem] flex flex-col p-8 space-y-6 border border-red-500/50 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-5">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-2xl bg-red-950 border border-red-700 flex items-center justify-center text-red-400 text-2xl">
+                        <i class="fa-solid fa-truck-monster"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading text-xl font-bold text-white">Driver SOS Cockpit</h3>
+                        <p class="text-xs text-slate-400">All-Terrain Driver Network</p>
+                    </div>
+                </div>
+                <button onclick="closeDriverAuthModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-2xl"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 border border-slate-800 rounded-2xl text-xs font-semibold">
+                <button onclick="switchDriverTab('login')" id="tab-drv-login" class="py-3 rounded-xl bg-red-600 text-white font-bold">Login</button>
+                <button onclick="switchDriverTab('register')" id="tab-drv-reg" class="py-3 rounded-xl text-slate-400 hover:text-white font-bold">Create Account</button>
+            </div>
+
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1.5">Driver Mobile / Email</label>
+                    <input type="text" id="drv-email" value="driver.bikram@ner-fleet.com" class="w-full bg-slate-950 border border-slate-800 text-white rounded-2xl p-4 text-sm focus:border-red-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1.5">Password</label>
+                    <input type="password" id="drv-pass" value="••••••••" class="w-full bg-slate-950 border border-slate-800 text-white rounded-2xl p-4 text-sm focus:border-red-500 focus:outline-none">
+                </div>
+                <button onclick="submitDriverAuth()" class="w-full py-4 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-sm rounded-2xl shadow-xl transition uppercase tracking-wider">
+                    Access Driver Cockpit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC ENGINE -->
+    <script>
+        const CUSTOMER_DATABASE = {
+            'NER-804': { name: 'Ananya Sharma', waybill: 'NER-804-MED-PERISHABLE', route: 'guwahati-shillong', driver: 'Bikram Thapa', vehicle: 'NER-TRUCK-804' },
+            'NER-902': { name: 'Tenzing Norbu', waybill: 'NER-902-TAWANG-EXPRESS', route: 'tezpur-tawang', driver: 'Lobsang Dorjee', vehicle: 'NER-TRUCK-902' },
+            'NER-105': { name: 'Priya Gurung', waybill: 'NER-105-GANGTOK-COLD', route: 'siliguri-gangtok', driver: 'Karna Tamang', vehicle: 'NER-TRUCK-105' },
+            'NER-308': { name: 'Rajesh Debbarma', waybill: 'NER-308-SILCHAR-CARGO', route: 'shillong-silchar', driver: 'Pranjal Gogoi', vehicle: 'NER-TRUCK-308' },
+            'NER-512': { name: 'Kevizhao Angami', waybill: 'NER-512-KOHIMA-MED', route: 'dimapur-kohima', driver: 'Neiketuzo Kire', vehicle: 'NER-TRUCK-512' }
+        };
+
+        const ROUTE_DATA = {
+            'guwahati-shillong': {
+                name: 'Guwahati ↔ Shillong (NH6)',
+                gmapsLink: 'https://www.google.com/maps/dir/?api=1&origin=Guwahati,Assam&destination=Shillong,Meghalaya',
+                distanceKm: 98, rainProbability: 85, rainRate: '38 mm/hr', landslideProbability: 78, status: 'CRITICAL HAZARD',
+                soilSat: '92%', slopeGrade: '34° Steep Cut', cloudburst: 'High Risk', histSlides: 14,
+                coordinates: [[26.1445, 91.7362], [26.0450, 91.8200], [25.8800, 91.8800], [25.6800, 91.9000], [25.5788, 91.8933]],
+                alternateCoordinates: [[26.1445, 91.7362], [26.1000, 91.9500], [25.7200, 91.9800], [25.5788, 91.8933]],
+                segments: [
+                    { name: 'Guwahati to Jorabat (Km 0-20)', rain: 45, landslide: 25, status: 'Safe' },
+                    { name: 'Jorabat to Sonapur (Km 20-45)', rain: 88, landslide: 85, status: 'Landslide Risk' },
+                    { name: 'Sonapur to Nongpoh (Km 45-70)', rain: 72, landslide: 60, status: 'Rain Warning' },
+                    { name: 'Nongpoh to Shillong (Km 70-98)', rain: 60, landslide: 40, status: 'Moderate' }
+                ],
+                hazardPoint: [25.8800, 91.8800], stuckDelay: 225
+            },
+            'shillong-silchar': {
+                name: 'Shillong ↔ Silchar (NH6 East)',
+                gmapsLink: 'https://www.google.com/maps/dir/?api=1&origin=Shillong,Meghalaya&destination=Silchar,Assam',
+                distanceKm: 215, rainProbability: 92, rainRate: '52 mm/hr', landslideProbability: 89, status: 'EXTREME HAZARD',
+                soilSat: '96%', slopeGrade: '41° Cliff Cut', cloudburst: 'Very High Risk', histSlides: 22,
+                coordinates: [[25.5788, 91.8933], [25.4000, 92.2000], [25.2000, 92.4000], [24.8333, 92.7789]],
+                alternateCoordinates: [[25.5788, 91.8933], [25.3000, 92.0500], [24.9500, 92.5000], [24.8333, 92.7789]],
+                segments: [
+                    { name: 'Shillong to Jowai (Km 0-65)', rain: 70, landslide: 50, status: 'Moderate' },
+                    { name: 'Jowai to Ratacherra (Km 65-140)', rain: 95, landslide: 92, status: 'Severe Slide' },
+                    { name: 'Ratacherra to Silchar (Km 140-215)', rain: 80, landslide: 65, status: 'High Rain' }
+                ],
+                hazardPoint: [25.2000, 92.4000], stuckDelay: 310
+            },
+            'tezpur-tawang': {
+                name: 'Tezpur ↔ Tawang (NH13 Pass)',
+                gmapsLink: 'https://www.google.com/maps/dir/?api=1&origin=Tezpur,Assam&destination=Tawang,Arunachal+Pradesh',
+                distanceKm: 320, rainProbability: 65, rainRate: '24 mm/hr', landslideProbability: 72, status: 'HIGH SLIDE RISK',
+                soilSat: '84%', slopeGrade: '48° High Elevation', cloudburst: 'Moderate Risk', histSlides: 18,
+                coordinates: [[26.6528, 92.7926], [27.2000, 92.4000], [27.3500, 92.2500], [27.5300, 92.0000], [27.5860, 91.8594]],
+                alternateCoordinates: [[26.6528, 92.7926], [26.9000, 92.1000], [27.4000, 91.9500], [27.5860, 91.8594]],
+                segments: [
+                    { name: 'Tezpur to Bhalukpong (Km 0-60)', rain: 40, landslide: 30, status: 'Safe' },
+                    { name: 'Bhalukpong to Bomdila (Km 60-160)', rain: 75, landslide: 70, status: 'High Slide' },
+                    { name: 'Bomdila to Sela Pass (Km 160-260)', rain: 80, landslide: 85, status: 'Critical Pass' },
+                    { name: 'Sela Pass to Tawang (Km 260-320)', rain: 50, landslide: 40, status: 'Moderate' }
+                ],
+                hazardPoint: [27.5300, 92.0000], stuckDelay: 420
+            },
+            'siliguri-gangtok': {
+                name: 'Siliguri ↔ Gangtok (NH10 Sikkim)',
+                gmapsLink: 'https://www.google.com/maps/dir/?api=1&origin=Siliguri,West+Bengal&destination=Gangtok,Sikkim',
+                distanceKm: 114, rainProbability: 80, rainRate: '35 mm/hr', landslideProbability: 84, status: 'CRITICAL HAZARD',
+                soilSat: '90%', slopeGrade: '38° River Gorge', cloudburst: 'High Risk', histSlides: 29,
+                coordinates: [[26.7271, 88.3953], [26.9000, 88.4500], [27.1000, 88.5000], [27.1700, 88.5500], [27.3314, 88.6138]],
+                alternateCoordinates: [[26.7271, 88.3953], [26.8500, 88.6000], [27.1200, 88.6500], [27.3314, 88.6138]],
+                segments: [
+                    { name: 'Siliguri to Sevoke (Km 0-25)', rain: 50, landslide: 30, status: 'Safe' },
+                    { name: 'Sevoke to Teesta Bazaar (Km 25-60)', rain: 90, landslide: 92, status: 'Severe Slide' },
+                    { name: 'Teesta to Rangpo (Km 60-85)', rain: 75, landslide: 65, status: 'Rain Warning' },
+                    { name: 'Rangpo to Gangtok (Km 85-114)', rain: 60, landslide: 45, status: 'Moderate' }
+                ],
+                hazardPoint: [27.1000, 88.5000], stuckDelay: 280
+            },
+            'dimapur-kohima': {
+                name: 'Dimapur ↔ Kohima (NH29 Nagaland)',
+                gmapsLink: 'https://www.google.com/maps/dir/?api=1&origin=Dimapur,Nagaland&destination=Kohima,Nagaland',
+                distanceKm: 74, rainProbability: 75, rainRate: '28 mm/hr', landslideProbability: 68, status: 'MODERATE SLIDE',
+                soilSat: '82%', slopeGrade: '30° Clay Hill', cloudburst: 'Moderate Risk', histSlides: 11,
+                coordinates: [[25.9060, 93.7270], [25.8000, 93.9000], [25.7500, 94.0500], [25.6751, 94.1086]],
+                alternateCoordinates: [[25.9060, 93.7270], [25.8500, 93.9500], [25.7000, 94.0800], [25.6751, 94.1086]],
+                segments: [
+                    { name: 'Dimapur to Medziphema (Km 0-30)', rain: 40, landslide: 20, status: 'Safe' },
+                    { name: 'Medziphema to Phesama (Km 30-55)', rain: 82, landslide: 78, status: 'Landslide Point' },
+                    { name: 'Phesama to Kohima (Km 55-74)', rain: 60, landslide: 45, status: 'Moderate' }
+                ],
+                hazardPoint: [25.7500, 94.0500], stuckDelay: 180
+            }
+        };
+
+        const FLEET_HELP_VEHICLES = [
+            { id: 'NER-RECOVERY-01', name: 'Guwahati heavy 4x4 Winch Truck', type: '4x4 Offroad Recovery', driver: 'Bikram Thapa', phone: '+91 98640-12345', distance: '6.4 km', eta: '14 mins' },
+            { id: 'NER-TOW-409', name: 'Assam Logistics Heavy Towing', type: 'Heavy Hydraulic Tow Truck', driver: 'Pranjal Gogoi', phone: '+91 94350-98765', distance: '12.8 km', eta: '24 mins' }
+        ];
+
+        let currentActiveRole = null;
+        let generatedCaptchaCode = '';
+        let adminMap, customerMap, driverMap, hazardChart;
+        let currentRouteKey = 'guwahati-shillong';
+        let isVehicleStuck = false;
+        let assignedHelperDriver = null;
+        let alertAudioInterval = null;
+        let isAudioMuted = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            generateCaptcha();
+            initChart();
+            renderNearbyVehicles();
+            runRouteRiskPredictor('guwahati-shillong', 'admin');
+            runRouteRiskPredictor('guwahati-shillong', 'driver');
+        });
+
+        function showSplashOpeningPage() {
+            ['view-splash', 'view-portal-entry', 'view-customer', 'view-admin', 'view-driver'].forEach(v => {
+                const el = document.getElementById(v);
+                if (v === 'view-splash') el.classList.remove('hidden');
+                else { el.classList.add('hidden'); el.classList.remove('flex'); }
+            });
+            document.getElementById('active-role-badge').classList.add('hidden');
+        }
+
+        function enterPortalFromSplash() {
+            ['view-splash', 'view-portal-entry', 'view-customer', 'view-admin', 'view-driver'].forEach(v => {
+                const el = document.getElementById(v);
+                if (v === 'view-portal-entry') { el.classList.remove('hidden'); el.classList.add('flex'); }
+                else { el.classList.add('hidden'); el.classList.remove('flex'); }
+            });
+        }
+
+        function showPortalEntry() {
+            enterPortalFromSplash();
+            document.getElementById('active-role-badge').classList.add('hidden');
+        }
+
+        function runRouteRiskPredictor(routeKey, panelType) {
+            const route = ROUTE_DATA[routeKey];
+            if (!route) return;
+
+            const rainEl = document.getElementById(`pred-rain-${panelType}`);
+            const slideEl = document.getElementById(`pred-slide-${panelType}`);
+            const clearEl = document.getElementById(`pred-clearance-${panelType}`);
+            const bypassEl = document.getElementById(`pred-bypass-${panelType}`);
+
+            if (rainEl) rainEl.innerText = `${route.rainProbability}% Chance (${route.rainRate})`;
+            if (slideEl) slideEl.innerText = `${route.landslideProbability}% Risk (${route.status})`;
+            if (clearEl) clearEl.innerText = `${Math.round(route.stuckDelay / 4)} Mins Clearance Window`;
+            if (bypassEl) bypassEl.innerText = `Reroute via Safe Bypass (-60% risk reduction on ${route.name})`;
+        }
+
+        function registerDriverVehicle() {
+            const vehNum = document.getElementById('driver-veh-num-input').value.trim();
+            if (!vehNum) {
+                alert('Please enter a valid Vehicle Number.');
+                return;
+            }
+
+            document.getElementById('driver-registered-vehicle-badge').innerText = vehNum;
+            document.getElementById('driver-cockpit-veh-title').innerText = 'Vehicle #' + vehNum;
+            alert('✅ VEHICLE REGISTRATION SUCCESSFUL!\nRegistered Vehicle Number: ' + vehNum + '\nStatus set to ACTIVE FOR WORK.');
+        }
+
+        function toggleAudioMute() {
+            isAudioMuted = !isAudioMuted;
+            document.getElementById('audio-text').innerText = isAudioMuted ? 'Audio Off' : 'Audio On';
+            document.getElementById('audio-icon').className = isAudioMuted ? 'fa-solid fa-volume-xmark text-red-400' : 'fa-solid fa-volume-high text-amber-400';
+            if (isAudioMuted) stopSOSAudioAlert();
+        }
+
+        function activateRoleView(roleName) {
+            currentActiveRole = roleName;
+            ['view-splash', 'view-portal-entry', 'view-customer', 'view-admin', 'view-driver'].forEach(v => {
+                const el = document.getElementById(v);
+                if (v === 'view-' + roleName) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                } else {
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
+                }
+            });
+
+            const badge = document.getElementById('active-role-badge');
+            const nameEl = document.getElementById('role-display-name');
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+            nameEl.innerText = roleName.toUpperCase();
+
+            if (roleName === 'customer' && !customerMap) setTimeout(initCustomerMap, 100);
+            if (roleName === 'admin' && !adminMap) setTimeout(initAdminMap, 100);
+            if (roleName === 'driver') setTimeout(initDriverMap, 100);
+        }
+
+        function triggerDriverSOS() {
+            isVehicleStuck = true;
+            const adminBox = document.getElementById('admin-sos-alert-box');
+            if (adminBox) adminBox.classList.remove('hidden');
+
+            startSOSAudioAlert();
+            renderStuckOnDriverMap();
+
+            document.getElementById('driver-rescue-status-box').innerHTML = `
+                <span class="font-bold text-red-400 block animate-pulse"><i class="fa-solid fa-truck-burst mr-1.5"></i> SOS ACTIVE: VEHICLE TRAPPED AT KM 32</span>
+                <p class="text-slate-200">Location Lat: 25.8800, Lng: 91.8800 sent to Admin Operations. Rescue unit dispatch pending.</p>
+            `;
+
+            alert('🚨 EMERGENCY SOS BROADCAST SENT!\nStuck location (25.8800, 91.8800) transmitted to Admin & Nearby Helper Vehicles.');
+        }
+
+        function dispatchHelperVehicle(vehicleId) {
+            assignedHelperDriver = vehicleId;
+
+            const rescueCard = document.getElementById('driver-rescue-assignment-card');
+            if (rescueCard) rescueCard.classList.remove('hidden');
+
+            const helperModal = document.getElementById('modal-helper-rescue-dispatch');
+            if (helperModal) helperModal.classList.remove('hidden');
+
+            startSOSAudioAlert();
+            renderStuckOnDriverMap();
+
+            speakText('Emergency rescue dispatch sent to helper driver. Alarm chime activated.');
+            alert('🚨 RESCUE DISPATCH SENT!\nNotification & continuous alarm activated on Helper Driver Panel for ' + vehicleId);
+        }
+
+        function acceptRescueMissionFromDriverPanel() {
+            stopSOSAudioAlert();
+
+            const rescueCard = document.getElementById('driver-rescue-assignment-card');
+            if (rescueCard) {
+                rescueCard.classList.remove('admin-sos-alert-flash', 'border-red-600');
+                rescueCard.classList.add('border-emerald-500', 'bg-emerald-950/50');
+                rescueCard.innerHTML = `
+                    <div class="flex items-center justify-between text-sm p-3">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-circle-check text-emerald-400 text-2xl"></i>
+                            <div>
+                                <strong class="text-white text-base block font-heading">✅ RESCUE MISSION ACCEPTED!</strong>
+                                <span class="text-emerald-300 text-xs">En route to stuck vehicle at NH6 Sonapur (25.8800, 91.8800). ETA: 14 mins.</span>
+                            </div>
+                        </div>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=25.8800,91.8800" target="_blank" class="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">Open Google Maps 📍</a>
+                    </div>
+                `;
+            }
+
+            const helperModal = document.getElementById('modal-helper-rescue-dispatch');
+            if (helperModal) helperModal.classList.add('hidden');
+
+            alert('✅ RESCUE MISSION ACCEPTED!\nAlarm silenced. Best turn-by-turn route locked to stuck vehicle location.');
+            speakText('Rescue mission accepted. En route to stuck vehicle.');
+        }
+
+        function confirmAdminSOS() {
+            stopSOSAudioAlert();
+
+            const adminPopup = document.getElementById('modal-admin-sos-dispatch');
+            if (adminPopup) adminPopup.classList.remove('hidden');
+
+            const adminBox = document.getElementById('admin-sos-alert-box');
+            if (adminBox) {
+                adminBox.classList.remove('admin-sos-alert-flash');
+                adminBox.classList.add('border-emerald-500', 'bg-emerald-950/50');
+            }
+        }
+
+        function renderStuckOnDriverMap() {
+            if (!driverMap) return;
+
+            const stuckPoint = [25.8800, 91.8800];
+            const helperPoint = [26.0450, 91.8200];
+
+            L.marker(stuckPoint, {
+                icon: L.divIcon({
+                    className: 'custom-sos-pin',
+                    html: `<div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white border-4 border-white shadow-2xl radar-beacon sos-active-btn"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>`,
+                    iconSize: [48, 48]
+                })
+            }).addTo(driverMap).bindPopup('<strong>🚨 STUCK LOCATION</strong><br>Sonapur Km 32 (25.8800, 91.8800)').openPopup();
+
+            L.polyline([helperPoint, stuckPoint], { color: '#10B981', weight: 6, opacity: 0.95 }).addTo(driverMap);
+            driverMap.setView(stuckPoint, 11);
+        }
+
+        function startSOSAudioAlert() {
+            if (isAudioMuted) return;
+            if (alertAudioInterval) clearInterval(alertAudioInterval);
+            speakText('Emergency Alert! You have a rescue dispatch mission.');
+            alertAudioInterval = setInterval(() => {
+                if (!isAudioMuted) speakText('Emergency Alert! Accept rescue mission.');
+            }, 4500);
+        }
+
+        function stopSOSAudioAlert() {
+            if (alertAudioInterval) {
+                clearInterval(alertAudioInterval);
+                alertAudioInterval = null;
+            }
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+
+        function exportTelemetryReport() {
+            const route = ROUTE_DATA[currentRouteKey];
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(route, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `NER_Telemetry_${currentRouteKey}.json`);
+            dlAnchorElem.click();
+        }
+
+        function printSLACertificate() {
+            const waybillKey = document.getElementById('cust-track-input').value.trim().toUpperCase() || 'NER-804';
+            const custInfo = CUSTOMER_DATABASE[waybillKey] || CUSTOMER_DATABASE['NER-804'];
+
+            const printWin = window.open('', '', 'width=800,height=600');
+            printWin.document.write(`
+                <html>
+                <head><title>SLA Delivery Certificate - NER Logistics</title></head>
+                <body style="font-family: Arial, sans-serif; padding: 40px; background: #fff; color: #111;">
+                    <h2 style="color: #0284c7; font-size: 24px;">⚡ NER-Shield AI SLA Delivery Certificate</h2>
+                    <hr style="border: 1px solid #ccc; margin: 20px 0;">
+                    <p style="font-size: 16px;"><strong>Customer Name:</strong> ${custInfo.name}</p>
+                    <p style="font-size: 16px;"><strong>Tracking Waybill:</strong> ${custInfo.waybill}</p>
+                    <p style="font-size: 16px;"><strong>Assigned Courier:</strong> ${custInfo.driver} (${custInfo.vehicle})</p>
+                    <p style="font-size: 16px;"><strong>Status:</strong> Active Weather Detour via Safe Bypass</p>
+                    <p style="font-size: 16px;"><strong>Cold Chain Guarantee:</strong> Verified Safe (2°C)</p>
+                    <p style="font-size: 16px;"><strong>Guaranteed Delivery SLA:</strong> Today 18:45 PM</p>
+                    <br>
+                    <p style="color: #10B981; font-weight: bold; font-size: 18px;">✅ Verified by Enterprise AI Route Resiliency Engine</p>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            printWin.print();
+        }
+
+        function initAdminMap() {
+            adminMap = L.map('admin-map', { zoomControl: true, attributionControl: false }).setView([25.8000, 91.8500], 9);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(adminMap);
+            switchRoute('guwahati-shillong');
+        }
+
+        function initCustomerMap() {
+            customerMap = L.map('customer-map', { zoomControl: false, attributionControl: false }).setView([25.7500, 91.8800], 10);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(customerMap);
+            const route = ROUTE_DATA['guwahati-shillong'];
+            L.polyline(route.coordinates, { color: '#10B981', weight: 5 }).addTo(customerMap);
+        }
+
+        function initDriverMap() {
+            if (driverMap) return;
+            driverMap = L.map('driver-map', { zoomControl: true, attributionControl: false }).setView([25.8000, 91.8500], 9);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(driverMap);
+
+            const route = ROUTE_DATA['guwahati-shillong'];
+            L.polyline(route.coordinates, { color: '#38BDF8', weight: 5 }).addTo(driverMap);
+
+            if (isVehicleStuck || assignedHelperDriver) {
+                renderStuckOnDriverMap();
+            }
+        }
+
+        function renderNearbyVehicles() {
+            const container = document.getElementById('nearby-vehicles-list');
+            container.innerHTML = FLEET_HELP_VEHICLES.map(v => `
+                <div class="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex justify-between items-center text-sm">
+                    <div>
+                        <strong class="text-amber-400 block text-base">${v.id}</strong>
+                        <span class="text-slate-400 text-xs">${v.name} • ${v.distance}</span>
+                    </div>
+                    <button onclick="dispatchHelperVehicle('${v.id}')" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold shadow-md">
+                        Dispatch (${v.eta})
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function generateCaptcha() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            generatedCaptchaCode = code;
+            document.getElementById('captcha-display').innerText = code.split('').join(' ');
+        }
+
+        function openCustomerAuthModal() { generateCaptcha(); document.getElementById('modal-customer-auth').classList.remove('hidden'); }
+        function closeCustomerAuthModal() { document.getElementById('modal-customer-auth').classList.add('hidden'); }
+
+        function verifyCustomerCaptcha() {
+            const waybillRaw = document.getElementById('cust-track-input').value.trim().toUpperCase();
+            const userCaptcha = document.getElementById('captcha-user-input').value.trim().toUpperCase();
+
+            if (!waybillRaw) { alert('Please enter a valid Tracking ID.'); return; }
+            if (userCaptcha !== generatedCaptchaCode) {
+                alert('⚠️ Invalid Captcha code!');
+                generateCaptcha();
+                document.getElementById('captcha-user-input').value = '';
+                return;
+            }
+
+            const custInfo = CUSTOMER_DATABASE[waybillRaw] || CUSTOMER_DATABASE['NER-804'];
+            document.getElementById('customer-name-heading').innerText = custInfo.name;
+            document.getElementById('customer-waybill-label').innerText = custInfo.waybill;
+            document.getElementById('customer-driver-name').innerText = custInfo.driver;
+            document.getElementById('customer-driver-vehicle').innerText = '4x4 Logistics Vehicle #' + custInfo.vehicle;
+
+            closeCustomerAuthModal();
+            activateRoleView('customer');
+        }
+
+        function openSupplierAuthModal() { document.getElementById('modal-supplier-auth').classList.remove('hidden'); }
+        function closeSupplierAuthModal() { document.getElementById('modal-supplier-auth').classList.add('hidden'); }
+        function switchSupplierTab(tab) {
+            const loginBtn = document.getElementById('tab-sup-login');
+            const regBtn = document.getElementById('tab-sup-reg');
+            loginBtn.className = tab === 'login' ? 'py-3 rounded-xl bg-emerald-600 text-white font-bold' : 'py-3 rounded-xl text-slate-400 font-bold';
+            regBtn.className = tab === 'register' ? 'py-3 rounded-xl bg-emerald-600 text-white font-bold' : 'py-3 rounded-xl text-slate-400 font-bold';
+        }
+        function submitSupplierAuth() { closeSupplierAuthModal(); activateRoleView('admin'); }
+
+        function openDriverAuthModal() { document.getElementById('modal-driver-auth').classList.remove('hidden'); }
+        function closeDriverAuthModal() { document.getElementById('modal-driver-auth').classList.add('hidden'); }
+        function switchDriverTab(tab) {
+            const loginBtn = document.getElementById('tab-drv-login');
+            const regBtn = document.getElementById('tab-drv-reg');
+            loginBtn.className = tab === 'login' ? 'py-3 rounded-xl bg-red-600 text-white font-bold' : 'py-3 rounded-xl text-slate-400 font-bold';
+            regBtn.className = tab === 'register' ? 'py-3 rounded-xl bg-red-600 text-white font-bold' : 'py-3 rounded-xl text-slate-400 font-bold';
+        }
+        function submitDriverAuth() { closeDriverAuthModal(); activateRoleView('driver'); }
+
+        function initChart() {
+            const ctx = document.getElementById('hazardChart').getContext('2d');
+            hazardChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Km 0', 'Km 20', 'Km 40', 'Km 60', 'Km 80', 'Km 98'],
+                    datasets: [
+                        { label: 'Rain %', data: [45, 88, 85, 72, 60, 50], borderColor: '#FFCC00', tension: 0.4 },
+                        { label: 'Landslide %', data: [25, 85, 80, 60, 40, 35], borderColor: '#EF4444', tension: 0.4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function switchRoute(key) {
+            currentRouteKey = key;
+            const route = ROUTE_DATA[key];
+            if (document.getElementById('gmaps-admin-link')) document.getElementById('gmaps-admin-link').href = route.gmapsLink;
+
+            document.getElementById('map-corridor-title').innerText = route.name;
+            document.getElementById('rain-percent-badge').innerText = route.rainProbability + '%';
+            document.getElementById('landslide-percent-badge').innerText = route.landslideProbability + '%';
+
+            const segListEl = document.getElementById('segment-list');
+            segListEl.innerHTML = route.segments.map(seg => `
+                <div class="p-3.5 bg-slate-950 border border-slate-800/80 rounded-2xl flex items-center justify-between text-sm">
+                    <div>
+                        <span class="font-semibold text-slate-200 block">${seg.name}</span>
+                        <div class="flex space-x-3 text-xs text-slate-400 mt-1"><span>Rain: ${seg.rain}%</span><span>Slide: ${seg.landslide}%</span></div>
+                    </div>
+                    <span class="px-3 py-1 text-xs rounded-lg font-bold ${seg.landslide > 70 ? 'bg-red-950 text-red-300 border border-red-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">${seg.status}</span>
+                </div>
+            `).join('');
+
+            if (adminMap) {
+                const poly = L.polyline(route.coordinates, { color: '#FFCC00', weight: 6 }).addTo(adminMap);
+                adminMap.fitBounds(poly.getBounds(), { padding: [40, 40] });
+            }
+        }
+
+        function applyReroute() { alert('Fleet rerouted to safe alternate route.'); }
+
+        function speakText(text) {
+            if (isAudioMuted) return;
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+    </script>
+</body>
+</html>

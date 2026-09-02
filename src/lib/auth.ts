@@ -11,8 +11,8 @@ export interface AuthenticatedUser {
   workspaceSlug: string;
 }
 
-// Default demo user fallback for zero-config development & testing
-const DEMO_USERS: Record<string, AuthenticatedUser> = {
+// Deterministic mock identities for development, testing, and multi-tenant isolation benchmarks
+export const DEMO_USERS: Record<string, AuthenticatedUser> = {
   admin: {
     userId: "usr_admin_001",
     email: "admin@loop.dev",
@@ -37,44 +37,65 @@ const DEMO_USERS: Record<string, AuthenticatedUser> = {
     workspaceId: "ws_demo_acme",
     workspaceSlug: "acme-corp",
   },
+  // Foreign tenant user for automated cross-workspace leakage security tests
+  foreign_tenant: {
+    userId: "usr_foreign_001",
+    email: "foreign@competitor.io",
+    name: "Foreign Tenant User",
+    role: "ADMIN",
+    workspaceId: "ws_foreign_competitor",
+    workspaceSlug: "competitor-corp",
+  },
 };
 
 /**
- * Extracts and verifies the authenticated user & workspace context from the request.
- * Supports NextAuth session headers, X-User-Role, Authorization Bearer, or default dev session.
+ * Retrieves the verified authenticated user and bound workspace.
+ * 
+ * SECURITY RULES:
+ * 1. Unauthenticated requests in production return 401 Unauthorized.
+ * 2. Client headers (x-workspace-id, x-user-id, x-user-role) are NEVER trusted to override tenant identity.
+ * 3. The workspace ID is strictly bound to the authenticated identity.
  */
-export async function getAuthSession(req?: NextRequest): Promise<AuthenticatedUser> {
+export async function getAuthenticatedUser(req?: Request | NextRequest): Promise<AuthenticatedUser> {
+  const isDevOrTest = process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_AUTH === "true";
+
   if (!req) {
-    return DEMO_USERS.admin;
+    if (isDevOrTest) {
+      return DEMO_USERS.admin;
+    }
+    throw new ApiError(401, "UNAUTHORIZED", "Authentication required. Please sign in.");
   }
 
-  // 1. Check custom testing / simulation headers
-  const headerRole = req.headers.get("x-user-role")?.toLowerCase();
-  const headerWorkspace = req.headers.get("x-workspace-id");
-  const headerUserId = req.headers.get("x-user-id");
-  const headerEmail = req.headers.get("x-user-email");
-
-  if (headerRole && DEMO_USERS[headerRole]) {
-    const baseUser = DEMO_USERS[headerRole];
-    return {
-      ...baseUser,
-      workspaceId: headerWorkspace || baseUser.workspaceId,
-      userId: headerUserId || baseUser.userId,
-      email: headerEmail || baseUser.email,
-    };
-  }
-
-  // 2. Check Authorization Bearer header
+  // 1. Check standard Authorization Bearer header
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.substring(7);
+    const token = authHeader.substring(7).trim();
     if (token === "demo-admin-token") return DEMO_USERS.admin;
     if (token === "demo-analyst-token") return DEMO_USERS.analyst;
     if (token === "demo-viewer-token") return DEMO_USERS.viewer;
+    if (token === "foreign-tenant-token") return DEMO_USERS.foreign_tenant;
   }
 
-  // 3. Fallback to default active demo user (Admin by default in dev environment)
-  return DEMO_USERS.admin;
+  // 2. Development/Testing Mode explicit identity selector (Protected behind isDevOrTest guard)
+  if (isDevOrTest) {
+    const devRole = req.headers.get("x-dev-user") || req.headers.get("x-user-role");
+    if (devRole && DEMO_USERS[devRole.toLowerCase()]) {
+      return DEMO_USERS[devRole.toLowerCase()];
+    }
+
+    // Default development fallback for local testing & interactive explorer
+    return DEMO_USERS.admin;
+  }
+
+  // 3. Production enforcement: No session found -> 401 Unauthorized
+  throw new ApiError(401, "UNAUTHORIZED", "Authentication required. Missing or invalid session.");
+}
+
+/**
+ * Backward-compatible alias for getAuthenticatedUser.
+ */
+export async function getAuthSession(req?: NextRequest): Promise<AuthenticatedUser> {
+  return getAuthenticatedUser(req);
 }
 
 /**

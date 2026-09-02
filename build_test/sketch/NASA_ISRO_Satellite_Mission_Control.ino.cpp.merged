@@ -1,0 +1,690 @@
+#include <Arduino.h>
+#line 1 "C:\\Users\\ishit jain\\Documents\\Arduino\\NASA_ISRO_Satellite_Mission_Control\\NASA_ISRO_Satellite_Mission_Control.ino"
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <DHT.h>
+#include <Servo.h>
+#include <ArduinoJson.h>
+
+// ================= PIN DEFINITIONS (EXACT HARDWARE PINS) =================
+#define DHTPIN D3
+#define DHTTYPE DHT11
+
+#define TRIG_PIN D5
+#define ECHO_PIN D6
+
+#define SERVO_PIN D7
+#define LED_PIN D0
+
+// ================= HARDWARE OBJECTS =================
+DHT dht(DHTPIN, DHTTYPE);
+Servo satelliteServo;
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+ESP8266WebServer server(80);
+
+// ================= SATELLITE CONFIGURATION & SETTINGS =================
+float temperatureLimit = 30.0;
+float distanceLimit = 20.0;
+int servoNormal = 0;
+int servoAlert = 90;
+int currentServoPos = 0;
+
+// Access Point Settings (Connect your phone/laptop to this Wi-Fi)
+const char* ap_ssid = "NASA_ISRO_SAT_STATION";
+const char* ap_pass = "satellite123";
+
+// Optional: Home/Lab Wi-Fi (if you want live Open-Meteo internet weather)
+const char* sta_ssid = "YOUR_WIFI_SSID";
+const char* sta_pass = "YOUR_WIFI_PASSWORD";
+
+// Telemetry State Variables
+float temperature = 25.0;
+float humidity = 50.0;
+float distance = 100.0;
+float lastDistance = 100.0;
+float heatIndex = 25.0;
+float dewPoint = 15.0;
+unsigned long lastSensorRead = 0;
+unsigned long lastLcdUpdate = 0;
+int lcdPage = 0;
+
+// Satellite Coordinates (Simulated Orbit: starts near Bengaluru ISRO / Sriharikota / NASA KSC)
+double satLat = 13.0827;
+double satLon = 80.2707;
+double satAlt = 550.0; // km
+double satSpeed = 7.66; // km/s (Orbital velocity)
+
+// ================= EDGE MACHINE LEARNING ENSEMBLE (XGBoost + AdaBoost) =================
+struct MLPredictions {
+  float xgboostAnomalyScore;    // 0.0 to 1.0
+  float adaboostThreatScore;     // 0.0 to 1.0
+  String threatLevel;            // "NOMINAL", "ELEVATED", "HIGH_THREAT", "CRITICAL"
+  String anomalyClass;           // "STABLE", "THERMAL_SPIKE", "PROXIMITY_ALERT", "SYSTEM_FAULT"
+  float confidence;              // Percentage (e.g. 96.4%)
+};
+
+MLPredictions currentML;
+
+// Embedded XGBoost (Gradient Boosted Decision Trees) Inference
+float runXGBoost(float temp, float hum, float dist, float rateDist) {
+  float logOdds = -1.85f; // Base score (bias)
+  
+  // Tree 1: Thermal Anomaly Tree
+  if (temp > 32.0f) {
+    if (hum > 75.0f) logOdds += 1.45f;
+    else logOdds += 0.85f;
+  } else {
+    if (temp < 15.0f) logOdds += 0.55f;
+    else logOdds -= 0.65f;
+  }
+
+  // Tree 2: Proximity & Velocity Gradient Tree
+  if (dist > 0 && dist < 25.0f) {
+    if (rateDist < -5.0f) logOdds += 1.80f; // Fast approaching collision
+    else logOdds += 0.95f;
+  } else {
+    logOdds -= 0.70f;
+  }
+
+  // Tree 3: Multimodal Sensor Interaction Tree
+  if (temp >= temperatureLimit && dist > 0 && dist <= distanceLimit) {
+    logOdds += 2.10f;
+  }
+
+  // Sigmoid activation function
+  float probability = 1.0f / (1.0f + exp(-logOdds));
+  return constrain(probability, 0.0f, 1.0f);
+}
+
+// Embedded AdaBoost (Adaptive Boosting Weighted Decision Stumps)
+float runAdaBoost(float temp, float hum, float dist) {
+  float alpha[5] = {0.35f, 0.42f, 0.58f, 0.31f, 0.49f};
+  float predictions[5];
+
+  // Stump 1: Extreme thermal limit
+  predictions[0] = (temp > 34.0f || temp < 10.0f) ? 1.0f : -1.0f;
+  // Stump 2: Critical collision boundary
+  predictions[1] = (dist > 0 && dist < 15.0f) ? 1.0f : -1.0f;
+  // Stump 3: Multi-hazard fusion
+  predictions[2] = (temp > 30.0f && dist > 0 && dist < 20.0f) ? 1.0f : -1.0f;
+  // Stump 4: Humidity saturation hazard
+  predictions[3] = (hum > 85.0f || hum < 20.0f) ? 1.0f : -1.0f;
+  // Stump 5: Sensor Disconnect / Out of Range
+  predictions[4] = (dist < 0 || isnan(temp)) ? 1.0f : -1.0f;
+
+  float weightedSum = 0;
+  float totalAlpha = 0;
+  for (int i = 0; i < 5; i++) {
+    weightedSum += alpha[i] * predictions[i];
+    totalAlpha += alpha[i];
+  }
+
+  float normalizedScore = (weightedSum / totalAlpha + 1.0f) / 2.0f;
+  return constrain(normalizedScore, 0.0f, 1.0f);
+}
+
+void evaluateMachineLearning() {
+  float rateOfDistance = distance - lastDistance;
+  lastDistance = distance;
+
+  currentML.xgboostAnomalyScore = runXGBoost(temperature, humidity, distance, rateOfDistance);
+  currentML.adaboostThreatScore = runAdaBoost(temperature, humidity, distance);
+
+  float combinedScore = (currentML.xgboostAnomalyScore * 0.6f) + (currentML.adaboostThreatScore * 0.4f);
+  currentML.confidence = (0.85f + (0.14f * (1.0f - abs(currentML.xgboostAnomalyScore - currentML.adaboostThreatScore)))) * 100.0f;
+
+  if (combinedScore < 0.25f) {
+    currentML.threatLevel = "NOMINAL (GREEN)";
+    currentML.anomalyClass = "STABLE";
+  } else if (combinedScore < 0.55f) {
+    currentML.threatLevel = "ELEVATED (YELLOW)";
+    currentML.anomalyClass = (temperature >= temperatureLimit) ? "THERMAL_WARNING" : "PROXIMITY_WATCH";
+  } else if (combinedScore < 0.80f) {
+    currentML.threatLevel = "HIGH THREAT (ORANGE)";
+    currentML.anomalyClass = (distance <= distanceLimit && distance > 0) ? "PROXIMITY_ALERT" : "THERMAL_SPIKE";
+  } else {
+    currentML.threatLevel = "CRITICAL DEFCON-1 (RED)";
+    currentML.anomalyClass = "MULTI_HAZARD_CRITICAL";
+  }
+}
+
+// ================= DISTANCE MEASUREMENT =================
+float getDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  if (duration == 0) return -1;
+  return duration * 0.0343 / 2.0;
+}
+
+// ================= LIVE WEB DASHBOARD HTML & JAVASCRIPT =================
+const char INDEX_HTML[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NASA - ISRO Satellite Telemetry & Mission Control</title>
+  <!-- Leaflet CSS & JS for Interactive World Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Chart.js for Live Heatmaps & Telemetry Streams -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #070b14;
+      --card-bg: #0d1527;
+      --accent-cyan: #00f0ff;
+      --accent-orange: #ff9900;
+      --accent-red: #ff3366;
+      --accent-green: #00ff88;
+      --text: #e2e8f0;
+      --border: #1e293b;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', 'Roboto', monospace, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 15px; }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: linear-gradient(135deg, #0b1329 0%, #1e1035 100%);
+      padding: 18px 25px; border-radius: 12px; border: 1px solid var(--accent-cyan);
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.2); margin-bottom: 20px;
+    }
+    .header h1 { font-size: 24px; color: var(--accent-cyan); letter-spacing: 2px; text-transform: uppercase; }
+    .badge { padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 13px; letter-spacing: 1px; }
+    .badge-live { background: rgba(0,255,136,0.2); color: var(--accent-green); border: 1px solid var(--accent-green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; margin-bottom: 20px; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .card h2 { font-size: 16px; color: var(--accent-cyan); margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; display:flex; justify-content:space-between; }
+
+    .metric-group { display: flex; justify-content: space-around; text-align: center; margin: 15px 0; }
+    .metric { padding: 10px; }
+    .metric .val { font-size: 28px; font-weight: bold; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+    .metric .lbl { font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-top: 4px; }
+
+    #map { height: 360px; border-radius: 8px; border: 1px solid var(--border); z-index: 1; }
+
+    .radar-container { position: relative; width: 220px; height: 220px; margin: 0 auto; border-radius: 50%; border: 2px solid var(--accent-green); background: radial-gradient(circle, rgba(0,255,136,0.05) 0%, rgba(0,255,136,0.2) 100%); overflow: hidden; }
+    .radar-sweep { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(from 0deg, rgba(0,255,136,0.4) 0deg, transparent 60deg); animation: rotate 3s linear infinite; }
+    .radar-blip { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); transform: translate(-50%, -50%); }
+    @keyframes rotate { 100% { transform: rotate(360deg); } }
+
+    .threat-bar { height: 10px; border-radius: 5px; background: #1e293b; overflow: hidden; margin-top: 8px; }
+    .threat-fill { height: 100%; transition: width 0.5s ease; }
+
+    .btn { background: var(--accent-cyan); color: #000; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    .btn:hover { background: #fff; box-shadow: 0 0 15px var(--accent-cyan); }
+    .slider { width: 100%; margin: 15px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--accent-orange); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>🚀 NASA &bull; ISRO SATELLITE MISSION CONTROL</h1>
+      <p style="color:#94a3b8; font-size:13px; margin-top:4px;">Orbital Telemetry &bull; Edge AI XGBoost/AdaBoost &bull; Threat Radar &bull; Live Ground Station</p>
+    </div>
+    <div>
+      <span class="badge badge-live">● SYSTEM ACTIVE</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- WORLD MAP & GROUND TRACK -->
+    <div class="card" style="grid-column: span 2;">
+      <h2>🌍 SATELLITE GROUND TRACK & WORLD ORBIT MAP <span id="sat-coords">LAT: 13.08° | LON: 80.27°</span></h2>
+      <div id="map"></div>
+    </div>
+
+    <!-- PROXIMITY RADAR & COLLISION AVOIDANCE -->
+    <div class="card">
+      <h2>📡 360° PROXIMITY SCANNER & RADAR</h2>
+      <div style="text-align: center; padding: 10px 0;">
+        <div class="radar-container">
+          <div class="radar-sweep"></div>
+          <div id="radar-blip" class="radar-blip" style="top: 50%; left: 50%; display:none;"></div>
+        </div>
+      </div>
+      <div class="metric-group">
+        <div class="metric"><div class="val" id="dist-val">--</div><div class="lbl">Obstacle Distance (cm)</div></div>
+        <div class="metric"><div class="val" id="prox-status" style="color:var(--accent-green);">CLEAR</div><div class="lbl">Orbit Sector</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- THERMAL & CLIMATE TELEMETRY -->
+    <div class="card">
+      <h2>🌡️ THERMAL & ATMOSPHERIC TELEMETRY</h2>
+      <div class="metric-group">
+        <div class="metric"><div class="val" id="temp-val" style="color:var(--accent-orange);">--</div><div class="lbl">Temperature (°C)</div></div>
+        <div class="metric"><div class="val" id="hum-val" style="color:var(--accent-cyan);">--</div><div class="lbl">Humidity (%)</div></div>
+      </div>
+      <div class="metric-group">
+        <div class="metric"><div class="val" id="heatindex-val">--</div><div class="lbl">Heat Index (°C)</div></div>
+        <div class="metric"><div class="val" id="dewpoint-val">--</div><div class="lbl">Dew Point (°C)</div></div>
+      </div>
+      <canvas id="telemetryChart" height="120"></canvas>
+    </div>
+
+    <!-- EDGE ML PREDICTION ENGINE -->
+    <div class="card">
+      <h2>🤖 EDGE AI INFERENCE ENGINE (XGBoost + AdaBoost)</h2>
+      <div style="margin: 10px 0;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span>XGBoost Gradient Anomaly Score:</span>
+          <span id="xgb-score" style="color:var(--accent-cyan); font-weight:bold;">0%</span>
+        </div>
+        <div class="threat-bar"><div id="xgb-bar" class="threat-fill" style="width:0%; background:var(--accent-cyan);"></div></div>
+      </div>
+
+      <div style="margin: 15px 0;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span>AdaBoost Adaptive Fault Index:</span>
+          <span id="ada-score" style="color:var(--accent-orange); font-weight:bold;">0%</span>
+        </div>
+        <div class="threat-bar"><div id="ada-bar" class="threat-fill" style="width:0%; background:var(--accent-orange);"></div></div>
+      </div>
+
+      <div class="metric-group" style="margin-top:20px;">
+        <div class="metric"><div class="val" id="threat-level" style="font-size:18px; color:var(--accent-green);">NOMINAL</div><div class="lbl">Overall Threat Level</div></div>
+        <div class="metric"><div class="val" id="ml-conf" style="font-size:18px; color:var(--accent-cyan);">98%</div><div class="lbl">ML Confidence</div></div>
+      </div>
+    </div>
+
+    <!-- RF SPECTRUM & WI-FI THREAT DETECTOR -->
+    <div class="card">
+      <h2>🛡️ RF SPECTRUM & WI-FI THREAT DETECTOR <button class="btn" style="padding:4px 10px; font-size:11px;" onclick="scanWiFi()">RE-SCAN</button></h2>
+      <div style="max-height: 220px; overflow-y: auto;">
+        <table id="wifi-table">
+          <thead>
+            <tr><th>SSID / Transponder</th><th>Signal (RSSI)</th><th>Security</th><th>Threat Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" style="text-align:center;">Scanning RF bands...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SATELLITE SERVO GIMBAL CONTROL -->
+  <div class="card">
+    <h2>🛰️ SATELLITE ANTENNA GIMBAL CONTROLLER (<span id="servo-angle-disp">0</span>°)</h2>
+    <input type="range" min="0" max="180" value="0" class="slider" id="servoSlider" oninput="setServo(this.value)">
+    <div style="display: flex; gap: 10px;">
+      <button class="btn" onclick="setServo(0)">0° Orbit</button>
+      <button class="btn" onclick="setServo(45)">45° Telemetry</button>
+      <button class="btn" onclick="setServo(90)">90° Alert Defcon</button>
+      <button class="btn" onclick="setServo(180)">180° Emergency</button>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Leaflet World Map
+    const map = L.map('map').setView([13.0827, 80.2707], 3);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; NASA / ISRO OpenStreetMap'
+    }).addTo(map);
+
+    const satIcon = L.divIcon({
+      className: 'custom-sat-icon',
+      html: '<div style="font-size:24px; text-shadow:0 0 10px #00f0ff;">🛰️</div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+
+    const satMarker = L.marker([13.0827, 80.2707], { icon: satIcon }).addTo(map);
+    const orbitPath = L.polyline([], { color: '#00f0ff', weight: 2, dashArray: '5, 10' }).addTo(map);
+
+    // Chart.js Telemetry Graph
+    const ctx = document.getElementById('telemetryChart').getContext('2d');
+    const telemetryChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'Temperature (°C)', borderColor: '#ff9900', data: [], tension: 0.3, fill: false },
+          { label: 'Humidity (%)', borderColor: '#00f0ff', data: [], tension: 0.3, fill: false }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#94a3b8' } } },
+        scales: {
+          x: { display: false },
+          y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } }
+        }
+      }
+    });
+
+    // Real-time polling
+    async function updateTelemetry() {
+      try {
+        const res = await fetch('/api/telemetry');
+        const data = await res.json();
+
+        // Update Text Metrics
+        document.getElementById('temp-val').innerText = data.temperature.toFixed(1);
+        document.getElementById('hum-val').innerText = data.humidity.toFixed(0);
+        document.getElementById('heatindex-val').innerText = data.heatIndex.toFixed(1);
+        document.getElementById('dewpoint-val').innerText = data.dewPoint.toFixed(1);
+
+        if (data.distance < 0) {
+          document.getElementById('dist-val').innerText = "NO OBSTACLE";
+          document.getElementById('prox-status').innerText = "CLEAR";
+          document.getElementById('prox-status').style.color = "var(--accent-green)";
+          document.getElementById('radar-blip').style.display = 'none';
+        } else {
+          document.getElementById('dist-val').innerText = data.distance.toFixed(1);
+          document.getElementById('radar-blip').style.display = 'block';
+          // Calculate blip position in radar circle
+          let radius = Math.min(data.distance * 3, 90);
+          document.getElementById('radar-blip').style.top = (110 - radius) + 'px';
+          document.getElementById('radar-blip').style.left = '110px';
+
+          if (data.distance <= 20) {
+            document.getElementById('prox-status').innerText = "CRITICAL PROXIMITY";
+            document.getElementById('prox-status').style.color = "var(--accent-red)";
+          } else {
+            document.getElementById('prox-status').innerText = "OBJECT IN RANGE";
+            document.getElementById('prox-status').style.color = "var(--accent-orange)";
+          }
+        }
+
+        // Update ML Scores
+        let xgbPercent = Math.round(data.ml.xgboost * 100);
+        let adaPercent = Math.round(data.ml.adaboost * 100);
+        document.getElementById('xgb-score').innerText = xgbPercent + '%';
+        document.getElementById('xgb-bar').style.width = xgbPercent + '%';
+        document.getElementById('ada-score').innerText = adaPercent + '%';
+        document.getElementById('ada-bar').style.width = adaPercent + '%';
+        document.getElementById('threat-level').innerText = data.ml.threatLevel;
+        document.getElementById('ml-conf').innerText = data.ml.confidence.toFixed(1) + '%';
+
+        // Update Map
+        satMarker.setLatLng([data.gps.lat, data.gps.lon]);
+        orbitPath.addLatLng([data.gps.lat, data.gps.lon]);
+        document.getElementById('sat-coords').innerText = `LAT: ${data.gps.lat.toFixed(4)}° | LON: ${data.gps.lon.toFixed(4)}° | ALT: ${data.gps.alt} km`;
+
+        // Update Graph
+        const now = new Date().toLocaleTimeString();
+        if (telemetryChart.data.labels.length > 20) {
+          telemetryChart.data.labels.shift();
+          telemetryChart.data.datasets[0].data.shift();
+          telemetryChart.data.datasets[1].data.shift();
+        }
+        telemetryChart.data.labels.push(now);
+        telemetryChart.data.datasets[0].data.push(data.temperature);
+        telemetryChart.data.datasets[1].data.push(data.humidity);
+        telemetryChart.update();
+
+      } catch (err) {
+        console.error("Telemetry fetch error:", err);
+      }
+    }
+
+    async function setServo(val) {
+      document.getElementById('servo-angle-disp').innerText = val;
+      document.getElementById('servoSlider').value = val;
+      fetch('/api/servo?angle=' + val);
+    }
+
+    async function scanWiFi() {
+      try {
+        const res = await fetch('/api/scan');
+        const data = await res.json();
+        const tbody = document.querySelector('#wifi-table tbody');
+        tbody.innerHTML = '';
+        data.networks.forEach(net => {
+          let row = `<tr>
+            <td><strong>${net.ssid}</strong></td>
+            <td>${net.rssi} dBm</td>
+            <td>${net.enc}</td>
+            <td style="color:${net.threat === 'SAFE' ? 'var(--accent-green)' : 'var(--accent-orange)'}">${net.threat}</td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      } catch (e) {
+        console.error("Scan error:", e);
+      }
+    }
+
+    setInterval(updateTelemetry, 1500);
+    scanWiFi();
+  </script>
+</body>
+</html>
+)rawliteral";
+
+// ================= API ENDPOINTS =================
+void handleRoot() {
+  server.send(200, "text/html", INDEX_HTML);
+}
+
+void handleTelemetryApi() {
+  // Update Simulated Orbital Ground Track Progression
+  satLon += 0.08;
+  if (satLon > 180.0) satLon = -180.0;
+
+  StaticJsonDocument<768> doc;
+  doc["temperature"] = temperature;
+  doc["humidity"] = humidity;
+  doc["distance"] = distance;
+  doc["heatIndex"] = heatIndex;
+  doc["dewPoint"] = dewPoint;
+  doc["servoAngle"] = currentServoPos;
+
+  JsonObject gps = doc.createNestedObject("gps");
+  gps["lat"] = satLat;
+  gps["lon"] = satLon;
+  gps["alt"] = satAlt;
+  gps["speed"] = satSpeed;
+
+  JsonObject ml = doc.createNestedObject("ml");
+  ml["xgboost"] = currentML.xgboostAnomalyScore;
+  ml["adaboost"] = currentML.adaboostThreatScore;
+  ml["threatLevel"] = currentML.threatLevel;
+  ml["anomalyClass"] = currentML.anomalyClass;
+  ml["confidence"] = currentML.confidence;
+
+  String jsonStr;
+  serializeJson(doc, jsonStr);
+  server.send(200, "application/json", jsonStr);
+}
+
+void handleScanApi() {
+  int n = WiFi.scanNetworks();
+  StaticJsonDocument<1024> doc;
+  JsonArray networks = doc.createNestedArray("networks");
+
+  for (int i = 0; i < n && i < 8; ++i) {
+    JsonObject net = networks.createNestedObject();
+    net["ssid"] = (WiFi.SSID(i).length() > 0) ? WiFi.SSID(i) : "[HIDDEN BEACON]";
+    net["rssi"] = WiFi.RSSI(i);
+    net["channel"] = WiFi.channel(i);
+    
+    String encType = "OPEN";
+    String threat = "SAFE";
+    switch (WiFi.encryptionType(i)) {
+      case ENC_TYPE_WEP: encType = "WEP"; threat = "WEAK ENCRYPTION"; break;
+      case ENC_TYPE_TKIP: encType = "WPA (TKIP)"; threat = "LEGACY CIPHER"; break;
+      case ENC_TYPE_CCMP: encType = "WPA2 (AES)"; threat = "SAFE"; break;
+      case ENC_TYPE_NONE: encType = "OPEN"; threat = "UNSECURED ACCESS"; break;
+      case ENC_TYPE_AUTO: encType = "AUTO"; threat = "SAFE"; break;
+    }
+    net["enc"] = encType;
+    net["threat"] = threat;
+  }
+
+  String output;
+  serializeJson(doc, output);
+  server.send(200, "application/json", output);
+}
+
+void handleServoApi() {
+  if (server.hasArg("angle")) {
+    int angle = server.arg("angle").toInt();
+    angle = constrain(angle, 0, 180);
+    currentServoPos = angle;
+    satelliteServo.write(currentServoPos);
+    server.send(200, "text/plain", "OK");
+  } else {
+    server.send(400, "text/plain", "Missing angle parameter");
+  }
+}
+
+// ================= SETUP =================
+void setup() {
+  Serial.begin(115200);
+
+  // Initialize GPIO Pins
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
+
+  digitalWrite(TRIG_PIN, LOW);
+  digitalWrite(LED_PIN, LOW);
+
+  // Initialize Sensors
+  dht.begin();
+
+  // Initialize I2C and LCD
+  Wire.begin(D2, D1);
+  lcd.init();
+  lcd.backlight();
+
+  // Initialize Servo
+  satelliteServo.attach(SERVO_PIN);
+  satelliteServo.write(servoNormal);
+
+  // LCD Boot Banner
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("NASA-ISRO SAT");
+  lcd.setCursor(0, 1);
+  lcd.print("SYSTEM START...");
+  delay(1500);
+
+  // Start Wi-Fi Access Point + Station
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(ap_ssid, ap_pass);
+  
+  IPAddress apIP = WiFi.softAPIP();
+
+  // Optional: try connecting to Station Wi-Fi
+  if (strlen(sta_ssid) > 0 && strcmp(sta_ssid, "YOUR_WIFI_SSID") != 0) {
+    WiFi.begin(sta_ssid, sta_pass);
+  }
+
+  // Setup Web Server Routes
+  server.on("/", handleRoot);
+  server.on("/api/telemetry", handleTelemetryApi);
+  server.on("/api/scan", handleScanApi);
+  server.on("/api/servo", handleServoApi);
+  server.begin();
+
+  // Show Station IP on LCD
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("MISSION CONTROL:");
+  lcd.setCursor(0, 1);
+  lcd.print(apIP);
+
+  Serial.println();
+  Serial.println("==================================================");
+  Serial.println("  🚀 NASA - ISRO SATELLITE TELEMETRY STATION");
+  Serial.println("==================================================");
+  Serial.print("📡 Ground Station AP Wi-Fi: "); Serial.println(ap_ssid);
+  Serial.print("🔑 AP Password: "); Serial.println(ap_pass);
+  Serial.print("🌐 Mission Control Web URL: http://"); Serial.println(apIP);
+  Serial.println("==================================================");
+  delay(2000);
+}
+
+// ================= MAIN LOOP =================
+void loop() {
+  server.handleClient();
+
+  unsigned long currentMillis = millis();
+
+  // Read Sensors Every 1000ms
+  if (currentMillis - lastSensorRead >= 1000) {
+    lastSensorRead = currentMillis;
+
+    float t = dht.readTemperature();
+    float h = dht.readHumidity();
+    float d = getDistance();
+
+    if (!isnan(t)) temperature = t;
+    if (!isnan(h)) humidity = h;
+    distance = d;
+
+    // Atmospheric calculations
+    dewPoint = temperature - ((100.0 - humidity) / 5.0);
+    heatIndex = -8.784695 + 1.61139411 * temperature + 2.338549 * humidity - 0.14611605 * temperature * humidity;
+
+    // Run Embedded Machine Learning Inference
+    evaluateMachineLearning();
+
+    // Hardware Alert & Servo Logic
+    bool tempAlert = (temperature >= temperatureLimit);
+    bool distAlert = (distance >= 0 && distance <= distanceLimit);
+
+    if (tempAlert || distAlert || currentML.xgboostAnomalyScore > 0.7f) {
+      digitalWrite(LED_PIN, HIGH);
+      satelliteServo.write(servoAlert);
+    } else {
+      digitalWrite(LED_PIN, LOW);
+      satelliteServo.write(servoNormal);
+    }
+
+    // Print Telemetry to Serial
+    Serial.println("----------------------------------------------");
+    Serial.printf("🌡️ Temp: %.1f C | Hum: %.1f %% | Dist: %.1f cm\n", temperature, humidity, distance);
+    Serial.printf("🤖 ML XGBoost Anomaly: %.1f %% | AdaBoost Threat: %.1f %%\n", currentML.xgboostAnomalyScore * 100.0f, currentML.adaboostThreatScore * 100.0f);
+    Serial.printf("🛡️ Status: %s | Class: %s\n", currentML.threatLevel.c_str(), currentML.anomalyClass.c_str());
+  }
+
+  // Rotate LCD Info Screen Every 3000ms
+  if (currentMillis - lastLcdUpdate >= 3000) {
+    lastLcdUpdate = currentMillis;
+    lcdPage = (lcdPage + 1) % 3;
+
+    lcd.clear();
+    if (lcdPage == 0) {
+      // Screen 1: Primary Telemetry
+      lcd.setCursor(0, 0);
+      lcd.printf("T:%.1fC H:%.0f%%", temperature, humidity);
+      lcd.setCursor(0, 1);
+      if (distance < 0) lcd.print("D:No object");
+      else lcd.printf("D:%.1fcm", distance);
+    } else if (lcdPage == 1) {
+      // Screen 2: Machine Learning Anomaly
+      lcd.setCursor(0, 0);
+      lcd.print("ML ANOMALY:");
+      lcd.printf("%.0f%%", currentML.xgboostAnomalyScore * 100.0f);
+      lcd.setCursor(0, 1);
+      lcd.print(currentML.anomalyClass.substring(0, 16));
+    } else {
+      // Screen 3: Web Dashboard IP
+      lcd.setCursor(0, 0);
+      lcd.print("AP: NASA-ISRO");
+      lcd.setCursor(0, 1);
+      lcd.print("IP:192.168.4.1");
+    }
+  }
+}
+

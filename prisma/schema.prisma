@@ -1,4 +1,7 @@
-// Prisma Schema for LOOP — AI Customer-Feedback Intelligence Platform
+// ============================================================================
+// LOOP — AI Customer-Feedback Intelligence Platform
+// Authoritative PostgreSQL Database Schema
+// ============================================================================
 
 datasource db {
   provider = "postgresql"
@@ -8,6 +11,10 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
+
+// ----------------------------------------------------------------------------
+// ENUMS
+// ----------------------------------------------------------------------------
 
 enum Role {
   ADMIN
@@ -33,6 +40,10 @@ enum ProcessingStatus {
   COMPLETED
   FAILED
 }
+
+// ----------------------------------------------------------------------------
+// MODELS & RELATIONS
+// ----------------------------------------------------------------------------
 
 model Workspace {
   id          String                  @id @default(cuid())
@@ -64,14 +75,14 @@ model User {
 model Feedback {
   id               String            @id @default(cuid())
   workspaceId      String
-  source           String            // e.g. "Website", "App", "Support", "Survey", "Social"
+  source           String
   customerName     String?
   customerEmail    String?
   rawText          String
   status           FeedbackStatus    @default(NEW)
   sentiment        Sentiment?
-  sentimentScore   Float?            // Normalized -1.0 to 1.0
-  featureArea      String?           // e.g. "Billing", "Authentication", "Performance", "UI/UX"
+  sentimentScore   Float?
+  featureArea      String?
   aiRationale      String?
   aiStatus         ProcessingStatus  @default(PENDING)
   createdAt        DateTime          @default(now())
@@ -145,13 +156,13 @@ model FeedbackEmbedding {
 model VoiceOfCustomerReport {
   id              String    @id @default(cuid())
   workspaceId     String
-  period          String    // e.g. "Last 30 Days", "2026-Q1"
+  period          String
   totalFeedback   Int
   positivePercent Float
   neutralPercent  Float
   negativePercent Float
-  topThemes       Json      // Structured list of themes with count, percent, and trend
-  spikes          Json      // Detected statistical anomaly spikes
+  topThemes       Json
+  spikes          Json
   aiNarrative     String
   generatedAt     DateTime  @default(now())
   workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

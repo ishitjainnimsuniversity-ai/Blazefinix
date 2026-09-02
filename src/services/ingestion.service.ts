@@ -1,51 +1,89 @@
 import Papa from "papaparse";
 import prisma from "@/lib/prisma";
+import { ApiError } from "@/lib/api-response";
 import { CsvFeedbackRowSchema } from "@/lib/validation/csv.schema";
-import { CsvImportErrorRow, CsvImportResult, SimulatedIngestInput } from "@/types/api";
+import { CsvImportResult, CsvRowError, FeedbackStatus, Sentiment, SimulatedIngestInput } from "@/types/api";
 import { FeedbackService } from "./feedback.service";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 import { classifyFeedback } from "@/lib/ai/classifier";
 
 export class IngestionService {
   /**
-   * Parses, validates, and bulk-inserts customer feedback from raw CSV content.
-   * Tracks valid vs invalid rows with granular diagnostic error messages.
+   * Ingests, validates, and processes a CSV string or buffer into feedback records.
+   * Includes column aliasing, row-level validation, partial success handling, and vector generation.
    */
   static async importCsv(
     workspaceId: string,
     csvContent: string,
-    options: { defaultSource?: string; skipAi?: boolean } = {}
+    options: {
+      defaultSource?: string;
+      skipAi?: boolean;
+    } = {}
   ): Promise<CsvImportResult> {
+    return this.ingestCsv(workspaceId, csvContent, options);
+  }
+
+  static async ingestCsv(
+    workspaceId: string,
+    csvContent: string,
+    options: {
+      defaultSource?: string;
+      skipAi?: boolean;
+    } = {}
+  ): Promise<CsvImportResult> {
+    if (!csvContent || !csvContent.trim()) {
+      throw new ApiError(400, "BAD_REQUEST", "CSV content cannot be empty.");
+    }
+
+    // Size / Row Limit Guard (Max 10MB / 5,000 rows)
+    const MAX_CSV_BYTES = 10 * 1024 * 1024;
+    if (Buffer.byteLength(csvContent, "utf8") > MAX_CSV_BYTES) {
+      throw new ApiError(413, "PAYLOAD_TOO_LARGE", "CSV content exceeds 10MB maximum limit.");
+    }
+
     const parseResult = Papa.parse<Record<string, string>>(csvContent.trim(), {
       header: true,
       skipEmptyLines: "greedy",
-      transformHeader: (h) => h.trim().toLowerCase().replace(/[\s_-]+/g, ""),
+      transformHeader: (h) => h.trim().toLowerCase().replace(/[_\s-]/g, ""),
     });
 
-    if (parseResult.errors && parseResult.errors.length > 0 && parseResult.data.length === 0) {
-      return {
-        total: 0,
-        successful: 0,
-        failed: parseResult.errors.length,
-        createdIds: [],
-        errors: parseResult.errors.map((err, idx) => ({
-          rowNumber: err.row || idx + 1,
+    const errors: CsvRowError[] = [];
+
+    // Issue A Fix: Capture parser-level errors immediately
+    if (parseResult.errors && parseResult.errors.length > 0) {
+      for (const err of parseResult.errors) {
+        errors.push({
+          rowNumber: (err.row ?? 0) + 1,
           data: {},
           reason: `CSV Parser Error: ${err.message}`,
-        })),
-      };
+        });
+      }
     }
 
     const rows = parseResult.data;
-    const total = rows.length;
+    if (rows.length === 0 && errors.length > 0) {
+      return {
+        total: 0,
+        successful: 0,
+        failed: errors.length,
+        createdIds: [],
+        errors,
+      };
+    }
+
+    const MAX_ROWS = 5000;
+    if (rows.length > MAX_ROWS) {
+      throw new ApiError(400, "BAD_REQUEST", `CSV contains ${rows.length} rows, which exceeds the 5,000 row maximum.`);
+    }
+
     const validRows: Array<{
+      rowNumber: number;
       rawText: string;
       source: string;
-      customerName?: string | null;
-      customerEmail?: string | null;
-      status: "NEW" | "REVIEWED" | "RESOLVED" | "ARCHIVED";
+      customerName?: string;
+      customerEmail?: string;
+      status: FeedbackStatus;
     }> = [];
-    const errors: CsvImportErrorRow[] = [];
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -81,8 +119,8 @@ export class IngestionService {
         null;
 
       const rawStatus = (row["status"] || "NEW").toUpperCase();
-      const status = ["NEW", "REVIEWED", "RESOLVED", "ARCHIVED"].includes(rawStatus)
-        ? (rawStatus as "NEW" | "REVIEWED" | "RESOLVED" | "ARCHIVED")
+      const status: FeedbackStatus = ["NEW", "REVIEWED", "RESOLVED", "ARCHIVED"].includes(rawStatus)
+        ? (rawStatus as FeedbackStatus)
         : "NEW";
 
       const validation = CsvFeedbackRowSchema.safeParse({
@@ -102,11 +140,12 @@ export class IngestionService {
         });
       } else {
         validRows.push({
+          rowNumber,
           rawText: validation.data.text,
           source: validation.data.source || options.defaultSource || "CSV Import",
-          customerName: validation.data.customerName,
-          customerEmail: validation.data.customerEmail,
-          status: validation.data.status,
+          customerName: validation.data.customerName || undefined,
+          customerEmail: validation.data.customerEmail || undefined,
+          status: validation.data.status as FeedbackStatus,
         });
       }
     }
@@ -130,7 +169,7 @@ export class IngestionService {
 
         createdIds.push(feedback.id);
 
-        // Store embedding
+        // Store dense embedding
         const embedding = generateEmbedding(validItem.rawText);
         await prisma.feedbackEmbedding.create({
           data: {
@@ -147,7 +186,7 @@ export class IngestionService {
           await prisma.feedback.update({
             where: { id: feedback.id },
             data: {
-              sentiment: result.sentiment,
+              sentiment: result.sentiment as Sentiment,
               sentimentScore: result.sentimentScore,
               featureArea: result.featureArea,
               aiRationale: result.rationale,
@@ -158,7 +197,7 @@ export class IngestionService {
           await prisma.aiAnalysis.create({
             data: {
               feedbackId: feedback.id,
-              sentiment: result.sentiment,
+              sentiment: result.sentiment as Sentiment,
               sentimentScore: result.sentimentScore,
               themes: result.themes,
               featureArea: result.featureArea,
@@ -199,9 +238,10 @@ export class IngestionService {
           }
         }
       } catch (insertError: any) {
-        console.error("[CSV Ingest Row Insert Error]:", insertError);
+        console.error(`[CSV Ingest Row Insert Error] Row #${validItem.rowNumber}:`, insertError);
+        // Issue B Fix: Preserve exact CSV row number
         errors.push({
-          rowNumber: -1,
+          rowNumber: validItem.rowNumber,
           data: { text: validItem.rawText },
           reason: `Database insertion failure: ${insertError.message}`,
         });
@@ -209,7 +249,7 @@ export class IngestionService {
     }
 
     return {
-      total,
+      total: rows.length,
       successful: createdIds.length,
       failed: errors.length,
       createdIds,

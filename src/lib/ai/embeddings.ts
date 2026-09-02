@@ -5,8 +5,28 @@
 
 const VECTOR_DIMENSIONS = 128;
 
+// Common semantic synonym clusters for feedback retrieval
+const SYNONYM_MAP: Record<string, string[]> = {
+  price: ["pricing", "cost", "billing", "expensive", "subscription", "plan", "charge", "invoice", "tier"],
+  pricing: ["price", "cost", "billing", "expensive", "subscription", "plan", "charge", "invoice", "tier"],
+  billing: ["payment", "invoice", "charge", "refund", "credit", "card", "amex", "checkout", "subscription"],
+  payment: ["billing", "checkout", "card", "transaction", "amex", "stripe", "charge", "refund"],
+  bug: ["error", "crash", "issue", "broken", "exception", "freeze", "failure", "fail"],
+  crash: ["freeze", "exception", "terminate", "hang", "unresponsive", "broken", "bug"],
+  login: ["auth", "authentication", "sso", "2fa", "password", "token", "session", "sign", "saml", "okta"],
+  auth: ["login", "authentication", "sso", "2fa", "password", "token", "session", "sign", "saml", "okta"],
+  "2fa": ["sms", "code", "mfa", "authenticator", "verification", "carrier", "login", "auth"],
+  slow: ["latency", "speed", "lag", "delay", "timeout", "performance", "load", "loading"],
+  fast: ["speed", "quick", "rapid", "responsive", "instant", "performance"],
+  support: ["agent", "ticket", "service", "help", "resolution", "response", "zendesk"],
+  export: ["download", "pdf", "csv", "report", "file"],
+  dark: ["theme", "mode", "night", "ui", "contrast", "appearance"],
+  mobile: ["app", "ios", "android", "phone", "iphone", "device"],
+  onboarding: ["setup", "start", "tutorial", "guide", "checklist", "import"],
+};
+
 /**
- * Computes a normalized vector embedding for a given text string.
+ * Computes a normalized vector embedding for a given text string with semantic expansion.
  */
 export function generateEmbedding(text: string): number[] {
   const normalized = text.toLowerCase().replace(/[^\w\s]/g, " ");
@@ -18,9 +38,17 @@ export function generateEmbedding(text: string): number[] {
     return vector;
   }
 
+  // Collect expanded tokens via synonym mapping
+  const expandedTokens = [...tokens];
+  for (const t of tokens) {
+    if (SYNONYM_MAP[t]) {
+      expandedTokens.push(...SYNONYM_MAP[t]);
+    }
+  }
+
   // Hash-based semantic feature projection (Murmur/DJB2 hybrid hash distribution)
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i];
+  for (let i = 0; i < expandedTokens.length; i++) {
+    const token = expandedTokens[i];
     
     // Unigram hash
     let hash1 = 5381;

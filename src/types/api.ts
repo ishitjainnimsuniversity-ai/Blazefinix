@@ -109,18 +109,20 @@ export interface BatchUpdateStatusInput {
   status: FeedbackStatus;
 }
 
-export interface CsvImportErrorRow {
+export interface CsvRowError {
   rowNumber: number;
-  data: Record<string, string>;
+  data: Record<string, any>;
   reason: string;
 }
+
+export type CsvImportErrorRow = CsvRowError;
 
 export interface CsvImportResult {
   total: number;
   successful: number;
   failed: number;
   createdIds: string[];
-  errors: CsvImportErrorRow[];
+  errors: CsvRowError[];
 }
 
 export interface SimulatedIngestInput {
@@ -195,6 +197,8 @@ export interface AskLoopRequest {
   question: string;
   topK?: number;
 }
+
+export type AskLoopInput = AskLoopRequest;
 
 export interface EvidenceItem {
   feedbackId: string;
