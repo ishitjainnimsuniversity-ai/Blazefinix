@@ -1,0 +1,328 @@
+import io
+import os
+import json
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+print('Loaded libraries')
+
+WORLD_CANCER_CASES = [
+    {
+        'patient_id': 'TCGA-BH-A0B2',
+        'cancer_key': 'breast',
+        'cancer_name': 'Breast Invasive Carcinoma',
+        'project_id': 'TCGA-BRCA',
+        'study_id': 'brca_tcga_pan_can_atlas_2018',
+        'primary_site': 'Breast / Infiltrating Ductal',
+        'stage': 'Stage IIA',
+        'gender': 'female',
+        'age': 58,
+        'overall_survival_months': 64.2,
+        'vital_status': 'Alive',
+        'hybrid_risk': 0.785,
+        'classical_risk': 0.812,
+        'quantum_risk': 0.7445,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'Multidisciplinary tumor board review, BRCA1 germline testing confirmation, and PARP inhibitor eligibility evaluation.',
+        'genes': [
+            {'symbol': 'BRCA1', 'name': 'BRCA1 DNA Repair Associated', 'ensembl_id': 'ENSG00000012048', 'chromosome': 'chr17:17q21.31', 'canonical_transcript': 'ENST00000357654', 'exon_count': 24, 'protein_change': 'p.E23fs / 185delAG', 'hotspot_mutation': 'c.68_69delAG', 'mutation_type': 'Frameshift Truncation', 'clinvar_id': 'VCV000017659', 'clinvar_significance': 'Pathogenic (HRD Deficient)', 'cosmic_id': 'COSV51862901', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000021', 'vaf_pct': 48.6, 'vqc_theta': 1.842},
+            {'symbol': 'TP53', 'name': 'Tumor Protein P53', 'ensembl_id': 'ENSG00000141510', 'chromosome': 'chr17:17p13.1', 'canonical_transcript': 'ENST00000269305', 'exon_count': 11, 'protein_change': 'p.R175H', 'hotspot_mutation': 'c.524G>A', 'mutation_type': 'Missense Mutation', 'clinvar_id': 'VCV000012374', 'clinvar_significance': 'Pathogenic / Li-Fraumeni', 'cosmic_id': 'COSV52669389', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000016', 'vaf_pct': 42.8, 'vqc_theta': 2.148}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-44-3918',
+        'cancer_key': 'lung',
+        'cancer_name': 'Lung Adenocarcinoma (LUAD)',
+        'project_id': 'TCGA-LUAD',
+        'study_id': 'luad_tcga_pan_can_atlas_2018',
+        'primary_site': 'Bronchus and lung / Peripheral',
+        'stage': 'Stage IIB',
+        'gender': 'male',
+        'age': 60,
+        'overall_survival_months': 38.5,
+        'vital_status': 'Deceased',
+        'hybrid_risk': 0.7931,
+        'classical_risk': 0.825,
+        'quantum_risk': 0.7452,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'First-line 3rd-generation EGFR TKI (Osimertinib) evaluation, brain MRI surveillance, and liquid biopsy monitoring for T790M.',
+        'genes': [
+            {'symbol': 'EGFR', 'name': 'Epidermal Growth Factor Receptor', 'ensembl_id': 'ENSG00000146648', 'chromosome': 'chr7:7p11.2', 'canonical_transcript': 'ENST00000275493', 'exon_count': 28, 'protein_change': 'p.L858R', 'hotspot_mutation': 'c.2573T>G', 'mutation_type': 'Activating Kinase', 'clinvar_id': 'VCV000016616', 'clinvar_significance': 'Targetable (Osimertinib Sensitizing)', 'cosmic_id': 'COSV51765492', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000008', 'vaf_pct': 38.4, 'vqc_theta': 1.954},
+            {'symbol': 'KRAS', 'name': 'KRAS Proto-Oncogene', 'ensembl_id': 'ENSG00000133703', 'chromosome': 'chr12:12p12.1', 'canonical_transcript': 'ENST00000311936', 'exon_count': 6, 'protein_change': 'p.G12C', 'hotspot_mutation': 'c.34G>T', 'mutation_type': 'GTPase Impairment', 'clinvar_id': 'VCV000012582', 'clinvar_significance': 'Targetable (Sotorasib)', 'cosmic_id': 'COSV55546258', 'fathmm_score': '0.98 Pathogenic', 'gnomad_exome_af': '0.000004', 'vaf_pct': 34.2, 'vqc_theta': 2.215}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-AA-3666',
+        'cancer_key': 'colorectum',
+        'cancer_name': 'Colon Adenocarcinoma (COAD)',
+        'project_id': 'TCGA-COAD',
+        'study_id': 'coadread_tcga_pan_can_atlas_2018',
+        'primary_site': 'Colon Ascending / Mucinous',
+        'stage': 'Stage IIA',
+        'gender': 'male',
+        'age': 59,
+        'overall_survival_months': 52.1,
+        'vital_status': 'Alive',
+        'hybrid_risk': 0.5824,
+        'classical_risk': 0.61,
+        'quantum_risk': 0.541,
+        'risk_tier': 'HIGH RISK',
+        'risk_color': '#F97316',
+        'recommendation': 'Complete mesocolic excision staging review, MSI/MMR status confirmation for immunotherapy eligibility.',
+        'genes': [
+            {'symbol': 'APC', 'name': 'APC Regulator of WNT Signaling', 'ensembl_id': 'ENSG00000134982', 'chromosome': 'chr5:5q22.2', 'canonical_transcript': 'ENST00000257430', 'exon_count': 16, 'protein_change': 'p.R1450*', 'hotspot_mutation': 'c.4348C>T', 'mutation_type': 'Nonsense Truncation', 'clinvar_id': 'VCV000000898', 'clinvar_significance': 'Pathogenic (FAP / Sporadic CRC)', 'cosmic_id': 'COSV53492104', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000012', 'vaf_pct': 47.3, 'vqc_theta': 2.19},
+            {'symbol': 'KRAS', 'name': 'KRAS Proto-Oncogene', 'ensembl_id': 'ENSG00000133703', 'chromosome': 'chr12:12p12.1', 'canonical_transcript': 'ENST00000311936', 'exon_count': 6, 'protein_change': 'p.G12D', 'hotspot_mutation': 'c.35G>A', 'mutation_type': 'Activating Transition', 'clinvar_id': 'VCV000012583', 'clinvar_significance': 'Oncogenic Driver (Anti-EGFR Resistance)', 'cosmic_id': 'COSV55546255', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000008', 'vaf_pct': 36.9, 'vqc_theta': 2.215}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-V1-A8WT',
+        'cancer_key': 'prostate',
+        'cancer_name': 'Prostate Adenocarcinoma (PRAD)',
+        'project_id': 'TCGA-PRAD',
+        'study_id': 'prad_tcga_pan_can_atlas_2018',
+        'primary_site': 'Prostate gland / Peripheral zone',
+        'stage': 'Stage II',
+        'gender': 'male',
+        'age': 68,
+        'overall_survival_months': 72.8,
+        'vital_status': 'Alive',
+        'hybrid_risk': 0.5218,
+        'classical_risk': 0.54,
+        'quantum_risk': 0.4945,
+        'risk_tier': 'HIGH RISK',
+        'risk_color': '#F97316',
+        'recommendation': 'Multiparametric prostate MRI (PI-RADS v2), PSA doubling time tracking, and PTEN deletion surveillance.',
+        'genes': [
+            {'symbol': 'AR', 'name': 'Androgen Receptor', 'ensembl_id': 'ENSG00000169083', 'chromosome': 'chrX:Xq12', 'canonical_transcript': 'ENST00000374690', 'exon_count': 8, 'protein_change': 'p.T878A', 'hotspot_mutation': 'c.2632A>G', 'mutation_type': 'Gain of Function', 'clinvar_id': 'VCV000010452', 'clinvar_significance': 'Likely Pathogenic (Enzalutamide Resistance)', 'cosmic_id': 'COSV57342981', 'fathmm_score': '0.97 Pathogenic', 'gnomad_exome_af': '0.000005', 'vaf_pct': 35.2, 'vqc_theta': 1.71},
+            {'symbol': 'PTEN', 'name': 'Phosphatase and Tensin Homolog', 'ensembl_id': 'ENSG00000171862', 'chromosome': 'chr10:10q23.31', 'canonical_transcript': 'ENST00000371953', 'exon_count': 9, 'protein_change': 'p.R130G / Loss', 'hotspot_mutation': 'c.388C>T', 'mutation_type': 'Phosphatase Inactivation', 'clinvar_id': 'VCV000002164', 'clinvar_significance': 'Pathogenic (PI3K Disinhibition)', 'cosmic_id': 'COSV51034981', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000014', 'vaf_pct': 39.5, 'vqc_theta': 1.89}
+        ]
+    }
+]
+print('Added Cohort Part 1 (4 cases)')
+
+WORLD_CANCER_CASES.extend([
+    {
+        'patient_id': 'TCGA-D1-A17D',
+        'cancer_key': 'melanoma',
+        'cancer_name': 'Skin Cutaneous Melanoma (SKCM)',
+        'project_id': 'TCGA-SKCM',
+        'study_id': 'skcm_tcga_pan_can_atlas_2018',
+        'primary_site': 'Skin of trunk / Cutaneous',
+        'stage': 'Stage III',
+        'gender': 'female',
+        'age': 52,
+        'overall_survival_months': 44.6,
+        'vital_status': 'Deceased',
+        'hybrid_risk': 0.841,
+        'classical_risk': 0.865,
+        'quantum_risk': 0.805,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'Combined BRAF+MEK inhibitor therapy (Dabrafenib + Trametinib) and anti-PD-1 immunotherapy evaluation.',
+        'genes': [
+            {'symbol': 'BRAF', 'name': 'B-Raf Proto-Oncogene', 'ensembl_id': 'ENSG00000157764', 'chromosome': 'chr7:7q34', 'canonical_transcript': 'ENST00000288602', 'exon_count': 18, 'protein_change': 'p.V600E', 'hotspot_mutation': 'c.1799T>A', 'mutation_type': 'Kinase Hyperactivation', 'clinvar_id': 'VCV000013961', 'clinvar_significance': 'Pathogenic (FDA Approved Target)', 'cosmic_id': 'COSV54483710', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000011', 'vaf_pct': 44.2, 'vqc_theta': 2.302},
+            {'symbol': 'CDKN2A', 'name': 'CDK Inhibitor 2A', 'ensembl_id': 'ENSG00000147889', 'chromosome': 'chr9:9p21.3', 'canonical_transcript': 'ENST00000304494', 'exon_count': 3, 'protein_change': 'p.R80*', 'hotspot_mutation': 'c.238C>T', 'mutation_type': 'Nonsense Deletion', 'clinvar_id': 'VCV000009381', 'clinvar_significance': 'Pathogenic (p16INK4a Loss)', 'cosmic_id': 'COSV52981042', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000009', 'vaf_pct': 46.0, 'vqc_theta': 2.055}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-09-2056',
+        'cancer_key': 'ovary',
+        'cancer_name': 'Ovarian Serous Cystadenocarcinoma (OV)',
+        'project_id': 'TCGA-OV',
+        'study_id': 'ov_tcga_pan_can_atlas_2018',
+        'primary_site': 'Ovary / High-Grade Serous',
+        'stage': 'Stage IIIC',
+        'gender': 'female',
+        'age': 57,
+        'overall_survival_months': 29.4,
+        'vital_status': 'Deceased',
+        'hybrid_risk': 0.892,
+        'classical_risk': 0.915,
+        'quantum_risk': 0.8575,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'Cytoreductive surgery review, carboplatin/paclitaxel chemotherapy, and maintenance Olaparib PARP inhibition.',
+        'genes': [
+            {'symbol': 'TP53', 'name': 'Tumor Protein P53', 'ensembl_id': 'ENSG00000141510', 'chromosome': 'chr17:17p13.1', 'canonical_transcript': 'ENST00000269305', 'exon_count': 11, 'protein_change': 'p.R248Q', 'hotspot_mutation': 'c.743G>A', 'mutation_type': 'DNA Contact Disruption', 'clinvar_id': 'VCV000012379', 'clinvar_significance': 'Pathogenic', 'cosmic_id': 'COSV52669392', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000018', 'vaf_pct': 52.4, 'vqc_theta': 2.148},
+            {'symbol': 'BRCA2', 'name': 'BRCA2 DNA Repair Associated', 'ensembl_id': 'ENSG00000139618', 'chromosome': 'chr13:13q13.1', 'canonical_transcript': 'ENST00000380152', 'exon_count': 27, 'protein_change': 'p.S1982fs', 'hotspot_mutation': 'c.5946delT', 'mutation_type': 'Frameshift Truncation', 'clinvar_id': 'VCV000017661', 'clinvar_significance': 'Pathogenic (PARP Sensitizing)', 'cosmic_id': 'COSV51984210', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000025', 'vaf_pct': 45.1, 'vqc_theta': 1.765}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-IB-7647',
+        'cancer_key': 'pancreas',
+        'cancer_name': 'Pancreatic Adenocarcinoma (PAAD)',
+        'project_id': 'TCGA-PAAD',
+        'study_id': 'paad_tcga_pan_can_atlas_2018',
+        'primary_site': 'Pancreas Head / Ductal',
+        'stage': 'Stage IIB',
+        'gender': 'male',
+        'age': 64,
+        'overall_survival_months': 16.8,
+        'vital_status': 'Deceased',
+        'hybrid_risk': 0.915,
+        'classical_risk': 0.932,
+        'quantum_risk': 0.8895,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'Modified FOLFIRINOX neoadjuvant regimen, CA 19-9 velocity monitoring, and clinical trial enrollment.',
+        'genes': [
+            {'symbol': 'KRAS', 'name': 'KRAS Proto-Oncogene', 'ensembl_id': 'ENSG00000133703', 'chromosome': 'chr12:12p12.1', 'canonical_transcript': 'ENST00000311936', 'exon_count': 6, 'protein_change': 'p.G12D', 'hotspot_mutation': 'c.35G>A', 'mutation_type': 'Constitutive Activation', 'clinvar_id': 'VCV000012583', 'clinvar_significance': 'Pathogenic Driver', 'cosmic_id': 'COSV55546255', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000008', 'vaf_pct': 41.6, 'vqc_theta': 2.215}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-06-0125',
+        'cancer_key': 'brain_gbm',
+        'cancer_name': 'Glioblastoma Multiforme (GBM)',
+        'project_id': 'TCGA-GBM',
+        'study_id': 'gbm_tcga_pan_can_atlas_2018',
+        'primary_site': 'Brain / Frontal Lobe',
+        'stage': 'Stage IV (WHO Grade 4)',
+        'gender': 'male',
+        'age': 49,
+        'overall_survival_months': 14.1,
+        'vital_status': 'Deceased',
+        'hybrid_risk': 0.942,
+        'classical_risk': 0.96,
+        'quantum_risk': 0.915,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'Maximal safe resection, Stupp protocol (radiotherapy + concurrent Temozolomide), and MGMT promoter methylation testing.',
+        'genes': [
+            {'symbol': 'EGFR', 'name': 'Epidermal Growth Factor Receptor', 'ensembl_id': 'ENSG00000146648', 'chromosome': 'chr7:7p11.2', 'canonical_transcript': 'ENST00000275493', 'exon_count': 28, 'protein_change': 'EGFRvIII Amplified', 'hotspot_mutation': 'Exon 2-7 Deletion', 'mutation_type': 'Constitutive Dimerization', 'clinvar_id': 'VCV000016620', 'clinvar_significance': 'Oncogenic Driver', 'cosmic_id': 'COSV51765499', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000001', 'vaf_pct': 62.0, 'vqc_theta': 1.954}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-CV-7247',
+        'cancer_key': 'oral_cavity',
+        'cancer_name': 'Lip, Oral Cavity & Tongue (HNSC)',
+        'project_id': 'TCGA-HNSC',
+        'study_id': 'hnsc_tcga_pan_can_atlas_2018',
+        'primary_site': 'Oral Cavity / Tongue Mucosa',
+        'stage': 'Stage III',
+        'gender': 'male',
+        'age': 55,
+        'overall_survival_months': 27.3,
+        'vital_status': 'Alive',
+        'hybrid_risk': 0.8842,
+        'classical_risk': 0.912,
+        'quantum_risk': 0.8425,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'Expedited neck dissection staging, TP53 targeted therapy evaluation, and HPV p16 immunohistochemistry.',
+        'genes': [
+            {'symbol': 'TP53', 'name': 'Tumor Protein P53', 'ensembl_id': 'ENSG00000141510', 'chromosome': 'chr17:17p13.1', 'canonical_transcript': 'ENST00000269305', 'exon_count': 11, 'protein_change': 'p.Q136P', 'hotspot_mutation': 'c.407A>C', 'mutation_type': 'Missense Mutation', 'clinvar_id': 'VCV000012371', 'clinvar_significance': 'Pathogenic', 'cosmic_id': 'COSV52669380', 'fathmm_score': '0.98 Pathogenic', 'gnomad_exome_af': '0.000006', 'vaf_pct': 43.1, 'vqc_theta': 2.148}
+        ]
+    }
+])
+print('Added Cohort Part 2 (Now 9 cases)')
+
+WORLD_CANCER_CASES.extend([
+    {
+        'patient_id': 'TCGA-RD-A8N6',
+        'cancer_type': 'Stomach Adenocarcinoma (STAD)',
+        'tcga_project': 'TCGA-STAD',
+        'cbioportal_study': 'stad_tcga_pan_can_atlas_2018',
+        'stage': 'Stage III',
+        'gender': 'Male',
+        'age': 67,
+        'overall_survival_months': 14.8,
+        'vital_status': 'Deceased',
+        'hybrid_risk': 0.8914,
+        'classical_risk': 0.908,
+        'quantum_risk': 0.8665,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'Adjuvant fluoropyrimidine + oxaliplatin chemotherapy regimen, HER2 IHC validation, and mismatch repair (MMR) assessment.',
+        'genes': [
+            {'symbol': 'TP53', 'name': 'Tumor Protein P53', 'ensembl_id': 'ENSG00000141510', 'chromosome': 'chr17:17p13.1', 'canonical_transcript': 'ENST00000269305', 'exon_count': 11, 'protein_change': 'p.R273H', 'hotspot_mutation': 'c.818G>A', 'mutation_type': 'Missense Mutation', 'clinvar_id': 'VCV000012379', 'clinvar_significance': 'Pathogenic', 'cosmic_id': 'COSV52668579', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000004', 'vaf_pct': 48.6, 'vqc_theta': 2.312},
+            {'symbol': 'PIK3CA', 'name': 'Phosphatidylinositol-4,5-Bisphosphate 3-Kinase Catalytic Subunit Alpha', 'ensembl_id': 'ENSG00000121879', 'chromosome': 'chr3:3q26.32', 'canonical_transcript': 'ENST00000263967', 'exon_count': 21, 'protein_change': 'p.E545K', 'hotspot_mutation': 'c.1633G>A', 'mutation_type': 'Missense Mutation', 'clinvar_id': 'VCV000013654', 'clinvar_significance': 'Pathogenic', 'cosmic_id': 'COSV54736341', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000002', 'vaf_pct': 24.2, 'vqc_theta': 1.624}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-DK-A2I6',
+        'cancer_type': 'Bladder Urothelial Carcinoma (BLCA)',
+        'tcga_project': 'TCGA-BLCA',
+        'cbioportal_study': 'blca_tcga_pan_can_atlas_2018',
+        'stage': 'Stage II',
+        'gender': 'Male',
+        'age': 64,
+        'overall_survival_months': 38.6,
+        'vital_status': 'Alive',
+        'hybrid_risk': 0.7725,
+        'classical_risk': 0.795,
+        'quantum_risk': 0.7388,
+        'risk_tier': 'HIGH RISK',
+        'risk_color': '#F59E0B',
+        'recommendation': 'Neoadjuvant cisplatin-based chemotherapy prior to radical cystectomy and FGFR3/TP53 targeted genomic follow-up.',
+        'genes': [
+            {'symbol': 'TP53', 'name': 'Tumor Protein P53', 'ensembl_id': 'ENSG00000141510', 'chromosome': 'chr17:17p13.1', 'canonical_transcript': 'ENST00000269305', 'exon_count': 11, 'protein_change': 'p.R282W', 'hotspot_mutation': 'c.844C>T', 'mutation_type': 'Missense Mutation', 'clinvar_id': 'VCV000012374', 'clinvar_significance': 'Pathogenic', 'cosmic_id': 'COSV52668580', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000003', 'vaf_pct': 39.5, 'vqc_theta': 2.054}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-BC-A108',
+        'cancer_type': 'Liver Hepatocellular Carcinoma (LIHC)',
+        'tcga_project': 'TCGA-LIHC',
+        'cbioportal_study': 'lihc_tcga_pan_can_atlas_2018',
+        'stage': 'Stage I',
+        'gender': 'Female',
+        'age': 58,
+        'overall_survival_months': 44.1,
+        'vital_status': 'Alive',
+        'hybrid_risk': 0.7410,
+        'classical_risk': 0.762,
+        'quantum_risk': 0.7095,
+        'risk_tier': 'HIGH RISK',
+        'risk_color': '#F59E0B',
+        'recommendation': 'Surgical segmentectomy resection followed by atezolizumab plus bevacizumab immunotherapy surveillance and CT dynamic liver monitoring.',
+        'genes': [
+            {'symbol': 'TP53', 'name': 'Tumor Protein P53', 'ensembl_id': 'ENSG00000141510', 'chromosome': 'chr17:17p13.1', 'canonical_transcript': 'ENST00000269305', 'exon_count': 11, 'protein_change': 'p.R249S', 'hotspot_mutation': 'c.747G>T', 'mutation_type': 'Missense Mutation', 'clinvar_id': 'VCV000012384', 'clinvar_significance': 'Pathogenic', 'cosmic_id': 'COSV52668586', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000001', 'vaf_pct': 37.8, 'vqc_theta': 1.942}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-B0-4690',
+        'cancer_type': 'Kidney Renal Clear Cell Carcinoma (KIRC)',
+        'tcga_project': 'TCGA-KIRC',
+        'cbioportal_study': 'kirc_tcga_pan_can_atlas_2018',
+        'stage': 'Stage III',
+        'gender': 'Male',
+        'age': 70,
+        'overall_survival_months': 21.5,
+        'vital_status': 'Alive',
+        'hybrid_risk': 0.8124,
+        'classical_risk': 0.834,
+        'quantum_risk': 0.7800,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'VHL tumor suppressor pathway surveillance, pembrolizumab + axitinib dual anti-angiogenic/checkpoint regimen, and renal retroperitoneal imaging.',
+        'genes': [
+            {'symbol': 'PTEN', 'name': 'Phosphatase and Tensin Homolog', 'ensembl_id': 'ENSG00000171862', 'chromosome': 'chr10:10q23.31', 'canonical_transcript': 'ENST00000371953', 'exon_count': 9, 'protein_change': 'p.R130G', 'hotspot_mutation': 'c.388C>G', 'mutation_type': 'Missense Mutation', 'clinvar_id': 'VCV000014382', 'clinvar_significance': 'Pathogenic', 'cosmic_id': 'COSV51719875', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000002', 'vaf_pct': 41.3, 'vqc_theta': 2.115}
+        ]
+    },
+    {
+        'patient_id': 'TCGA-24-1467',
+        'cancer_type': 'Cervical Squamous Cell Carcinoma (CESC)',
+        'tcga_project': 'TCGA-CESC',
+        'cbioportal_study': 'cesc_tcga_pan_can_atlas_2018',
+        'stage': 'Stage IIB',
+        'gender': 'Female',
+        'age': 49,
+        'overall_survival_months': 31.8,
+        'vital_status': 'Alive',
+        'hybrid_risk': 0.8256,
+        'classical_risk': 0.849,
+        'quantum_risk': 0.7905,
+        'risk_tier': 'CRITICAL RISK',
+        'risk_color': '#EF4444',
+        'recommendation': 'Concurrent cisplatin chemoradiation (CCRT) combined with high-dose-rate (HDR) brachytherapy, HPV-16/18 genotyping, and PIK3CA surveillance.',
+        'genes': [
+            {'symbol': 'PIK3CA', 'name': 'Phosphatidylinositol-4,5-Bisphosphate 3-Kinase Catalytic Subunit Alpha', 'ensembl_id': 'ENSG00000121879', 'chromosome': 'chr3:3q26.32', 'canonical_transcript': 'ENST00000263967', 'exon_count': 21, 'protein_change': 'p.E542K', 'hotspot_mutation': 'c.1624G>A', 'mutation_type': 'Missense Mutation', 'clinvar_id': 'VCV000013653', 'clinvar_significance': 'Pathogenic', 'cosmic_id': 'COSV54736340', 'fathmm_score': '0.99 Pathogenic', 'gnomad_exome_af': '0.000003', 'vaf_pct': 33.7, 'vqc_theta': 1.876}
+        ]
+    }
+])
+print(f'Total cohort cases: {len(WORLD_CANCER_CASES)}')

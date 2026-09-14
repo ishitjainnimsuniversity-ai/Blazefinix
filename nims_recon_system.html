@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIMS Cyber Reconnaissance & Wireless Multi-Channel Spectrum Map</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background: #0b0f19;
+            color: #e2e8f0;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+        
+        /* Modern Top Control Toolbar */
+        .recon-header {
+            position: absolute;
+            top: 12px;
+            left: 55px;
+            right: 12px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 10px 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand-icon {
+            font-size: 20px;
+            color: #3b82f6;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        .brand-title {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #f8fafc;
+        }
+        .brand-subtitle {
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        /* Action Buttons & Filters */
+        .filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+        .filter-btn {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #cbd5e1;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .filter-btn:hover {
+            background: rgba(59, 130, 246, 0.25);
+            border-color: #3b82f6;
+            color: #ffffff;
+        }
+        .filter-btn.active {
+            background: #2563eb;
+            border-color: #60a5fa;
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+        }
+        .filter-btn.vuln-btn.active {
+            background: #dc2626;
+            border-color: #f87171;
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.6);
+        }
+
+        /* Channel Quick Bar */
+        .channel-bar {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            border-radius: 30px;
+            padding: 6px 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            max-width: 95vw;
+            overflow-x: auto;
+        }
+        .ch-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-right: 4px;
+            white-space: nowrap;
+        }
+        .ch-pill {
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            border-radius: 14px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .ch-pill:hover {
+            background: #334155;
+            color: #fff;
+        }
+        .ch-pill.active {
+            background: #3b82f6;
+            color: #fff;
+            border-color: #93c5fd;
+        }
+        .ch-pill.special {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: #ef4444;
+            color: #fca5a5;
+        }
+        .ch-pill.special.active {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        /* Status Badge */
+        .stats-badge {
+            font-size: 11px;
+            font-weight: 600;
+            color: #38bdf8;
+            background: rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        /* Leaflet Popups */
+        .leaflet-popup-content-wrapper {
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
+            border: 1px solid #3b82f6 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8) !important;
+        }
+        .leaflet-popup-tip {
+            background: #0f172a !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Command & Filter Bar -->
+    <div class="recon-header">
+        <div class="brand">
+            <i class="fa-solid fa-satellite-dish brand-icon"></i>
+            <div>
+                <div class="brand-title">NIMS UNIVERSITY SPECTRUM RECON</div>
+                <div class="brand-subtitle">GPS: 27.189814, 75.954264 | Full Spectrum Reconnaissance</div>
+            </div>
+        </div>
+
+        <div class="filter-container">
+            <button class="filter-btn active" id="btn-sat" onclick="setBaseLayer('satellite')">
+                <i class="fa-solid fa-satellite"></i> Satellite Map
+            </button>
+            <button class="filter-btn" id="btn-street" onclick="setBaseLayer('street')">
+                <i class="fa-solid fa-map"></i> Street Map
+            </button>
+
+            <span style="color: #475569;">|</span>
+
+            <button class="filter-btn active" id="btn-all" onclick="filterByBand('ALL')">
+                🌐 All Bands
+            </button>
+            <button class="filter-btn" id="btn-24" onclick="filterByBand('2.4 GHz')">
+                📶 2.4 GHz Band
+            </button>
+            <button class="filter-btn" id="btn-5g" onclick="filterByBand('5 GHz')">
+                ⚡ 5 GHz High-Speed
+            </button>
+
+            <span style="color: #475569;">|</span>
+
+            <button class="filter-btn vuln-btn" id="btn-vuln" onclick="toggleVulnerableOnly()">
+                🚨 Vulnerable (WEP/Open)
+            </button>
+
+            <span style="color: #475569;">|</span>
+
+            <button class="filter-btn" onclick="jumpTo('NIMS')">
+                📍 NIMS Campus
+            </button>
+            <button class="filter-btn" onclick="jumpTo('JAIPUR')">
+                📍 Jaipur Core
+            </button>
+
+            <span class="stats-badge" id="visible-count">Visible: 0 APs</span>
+        </div>
+    </div>
+
+    <!-- Bottom Multi-Channel Spectrum Bar (Channels 1 to 14 & 5GHz) -->
+    <div class="channel-bar">
+        <span class="ch-label"><i class="fa-solid fa-tower-broadcast"></i> CHANNELS:</span>
+        <button class="ch-pill active" onclick="filterByChannel('ALL')">ALL CH</button>
+        <button class="ch-pill" onclick="filterByChannel(1)">Ch 1</button>
+        <button class="ch-pill" onclick="filterByChannel(2)">Ch 2</button>
+        <button class="ch-pill" onclick="filterByChannel(3)">Ch 3</button>
+        <button class="ch-pill" onclick="filterByChannel(4)">Ch 4</button>
+        <button class="ch-pill" onclick="filterByChannel(5)">Ch 5</button>
+        <button class="ch-pill special" onclick="filterByChannel(6)">Ch 6 (WEP)</button>
+        <button class="ch-pill" onclick="filterByChannel(7)">Ch 7</button>
+        <button class="ch-pill" onclick="filterByChannel(8)">Ch 8</button>
+        <button class="ch-pill" onclick="filterByChannel(9)">Ch 9</button>
+        <button class="ch-pill" onclick="filterByChannel(10)">Ch 10</button>
+        <button class="ch-pill" onclick="filterByChannel(11)">Ch 11</button>
+        <button class="ch-pill" onclick="filterByChannel(12)">Ch 12</button>
+        <button class="ch-pill" onclick="filterByChannel(13)">Ch 13</button>
+        <button class="ch-pill" onclick="filterByChannel(14)">Ch 14</button>
+        <span style="color: #475569; margin: 0 4px;">|</span>
+        <button class="ch-pill" onclick="filterBy5GSub('UNII1')">5G (Ch 36-48)</button>
+        <button class="ch-pill" onclick="filterBy5GSub('UNII2')">5G (Ch 52-64)</button>
+        <button class="ch-pill" onclick="filterBy5GSub('UNII3')">5G (Ch 149-161)</button>
+    </div>
+
+    <!-- Map Canvas -->
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const wifiData = [{"id": 1, "ssid": "NIMS_Campus_AP_Ch1_1", "bssid": "BC:30:7D:14:52:53", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -44, "vendor": "Airtel Xstream Fiber", "lat": 27.190151, "lon": 75.954098, "color": "#3B82F6"}, {"id": 2, "ssid": "NIMS_Campus_AP_Ch1_2", "bssid": "48:8F:5A:5C:5C:16", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -76, "vendor": "MikroTik RouterBOARD", "lat": 27.191269, "lon": 75.95764, "color": "#3B82F6"}, {"id": 3, "ssid": "NIMS_Campus_AP_Ch1_3", "bssid": "F0:9F:C2:53:10:63", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -71, "vendor": "Ubiquiti UniFi Pro", "lat": 27.192608, "lon": 75.953245, "color": "#3B82F6"}, {"id": 4, "ssid": "NIMS_Campus_AP_Ch1_4", "bssid": "BC:30:7D:3D:13:2C", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -53, "vendor": "Airtel Xstream Fiber", "lat": 27.185049, "lon": 75.951266, "color": "#3B82F6"}, {"id": 5, "ssid": "NIMS_Campus_AP_Ch1_5", "bssid": "24:DE:C6:21:60:34", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -50, "vendor": "Aruba IAP-305", "lat": 27.186463, "lon": 75.958114, "color": "#3B82F6"}, {"id": 6, "ssid": "NIMS_Campus_AP_Ch1_6", "bssid": "40:4E:36:45:63:39", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -56, "vendor": "JioFiber Home Gateway", "lat": 27.186111, "lon": 75.955799, "color": "#3B82F6"}, {"id": 7, "ssid": "NIMS_Campus_AP_Ch2_1", "bssid": "50:D4:F7:11:29:18", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -60, "vendor": "TP-Link Archer", "lat": 27.192039, "lon": 75.955806, "color": "#3B82F6"}, {"id": 8, "ssid": "NIMS_Campus_AP_Ch2_2", "bssid": "F0:9F:C2:4A:37:0F", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -79, "vendor": "Ubiquiti UniFi Pro", "lat": 27.19393, "lon": 75.950907, "color": "#3B82F6"}, {"id": 9, "ssid": "NIMS_Campus_AP_Ch2_3", "bssid": "20:0C:C8:58:50:1F", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -82, "vendor": "Netgear Nighthawk", "lat": 27.186909, "lon": 75.950285, "color": "#3B82F6"}, {"id": 10, "ssid": "NIMS_Campus_AP_Ch2_4", "bssid": "24:DE:C6:0C:4C:5A", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -48, "vendor": "Aruba IAP-305", "lat": 27.187632, "lon": 75.951722, "color": "#3B82F6"}, {"id": 11, "ssid": "NIMS_Campus_AP_Ch2_5", "bssid": "48:8F:5A:45:16:0E", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -61, "vendor": "MikroTik RouterBOARD", "lat": 27.188912, "lon": 75.9501, "color": "#3B82F6"}, {"id": 12, "ssid": "NIMS_Campus_AP_Ch2_6", "bssid": "40:4E:36:16:63:11", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -54, "vendor": "JioFiber Home Gateway", "lat": 27.187593, "lon": 75.954504, "color": "#3B82F6"}, {"id": 13, "ssid": "NIMS_Campus_AP_Ch3_1", "bssid": "50:D4:F7:59:45:0F", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -79, "vendor": "TP-Link Archer", "lat": 27.185331, "lon": 75.957676, "color": "#3B82F6"}, {"id": 14, "ssid": "NIMS_Campus_AP_Ch3_2", "bssid": "BC:30:7D:17:2A:14", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -50, "vendor": "Airtel Xstream Fiber", "lat": 27.193736, "lon": 75.957939, "color": "#3B82F6"}, {"id": 15, "ssid": "NIMS_Campus_AP_Ch3_3", "bssid": "70:7B:E8:32:1C:41", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -57, "vendor": "Huawei Enterprise", "lat": 27.192888, "lon": 75.95331, "color": "#3B82F6"}, {"id": 16, "ssid": "NIMS_Campus_AP_Ch3_4", "bssid": "00:23:CD:0F:4A:30", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -66, "vendor": "iBall-Baton Legacy", "lat": 27.190966, "lon": 75.950329, "color": "#3B82F6"}, {"id": 17, "ssid": "NIMS_Campus_AP_Ch3_5", "bssid": "70:7B:E8:10:1B:48", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -47, "vendor": "Huawei Enterprise", "lat": 27.190619, "lon": 75.958939, "color": "#3B82F6"}, {"id": 18, "ssid": "NIMS_Campus_AP_Ch3_6", "bssid": "24:DE:C6:37:0E:52", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -61, "vendor": "Aruba IAP-305", "lat": 27.189704, "lon": 75.95785, "color": "#3B82F6"}, {"id": 19, "ssid": "NIMS_Campus_FreeGuest_Open", "bssid": "20:0C:C8:43:4A:36", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "Open (Unencrypted)", "risk": "VULNERABLE", "rssi": -82, "vendor": "Netgear Nighthawk", "lat": 27.192303, "lon": 75.950615, "color": "#EF4444"}, {"id": 20, "ssid": "NIMS_Campus_AP_Ch4_2", "bssid": "24:DE:C6:43:2E:37", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -63, "vendor": "Aruba IAP-305", "lat": 27.187234, "lon": 75.954647, "color": "#3B82F6"}, {"id": 21, "ssid": "NIMS_Campus_AP_Ch4_3", "bssid": "70:7B:E8:0F:36:2D", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -79, "vendor": "Huawei Enterprise", "lat": 27.187517, "lon": 75.954955, "color": "#3B82F6"}, {"id": 22, "ssid": "NIMS_Campus_AP_Ch4_4", "bssid": "48:8F:5A:3E:0F:3A", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -43, "vendor": "MikroTik RouterBOARD", "lat": 27.188735, "lon": 75.95325, "color": "#3B82F6"}, {"id": 23, "ssid": "NIMS_Campus_AP_Ch4_5", "bssid": "48:8F:5A:20:10:60", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -47, "vendor": "MikroTik RouterBOARD", "lat": 27.18726, "lon": 75.955997, "color": "#3B82F6"}, {"id": 24, "ssid": "NIMS_Campus_AP_Ch4_6", "bssid": "00:23:CD:53:3D:2F", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -60, "vendor": "iBall-Baton Legacy", "lat": 27.193682, "lon": 75.956688, "color": "#3B82F6"}, {"id": 25, "ssid": "NIMS_Campus_SecureWPA3_25", "bssid": "48:8F:5A:1F:53:35", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA3-SAE (Wi-Fi 6 Protected)", "risk": "SECURE", "rssi": -79, "vendor": "MikroTik RouterBOARD", "lat": 27.193469, "lon": 75.95685, "color": "#10B981"}, {"id": 26, "ssid": "NIMS_Campus_AP_Ch5_2", "bssid": "00:23:CD:2C:21:33", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -72, "vendor": "iBall-Baton Legacy", "lat": 27.184851, "lon": 75.957234, "color": "#3B82F6"}, {"id": 27, "ssid": "NIMS_Campus_AP_Ch5_3", "bssid": "E0:55:3D:2D:46:54", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -43, "vendor": "Cisco Meraki AP", "lat": 27.192466, "lon": 75.951086, "color": "#3B82F6"}, {"id": 28, "ssid": "NIMS_Campus_AP_Ch5_4", "bssid": "F0:9F:C2:3D:1B:11", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -58, "vendor": "Ubiquiti UniFi Pro", "lat": 27.192356, "lon": 75.953495, "color": "#3B82F6"}, {"id": 29, "ssid": "NIMS_Campus_AP_Ch5_5", "bssid": "E0:55:3D:10:3C:54", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -46, "vendor": "Cisco Meraki AP", "lat": 27.192844, "lon": 75.953595, "color": "#3B82F6"}, {"id": 30, "ssid": "NIMS_Campus_AP_Ch5_6", "bssid": "14:D6:4D:13:63:1C", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -49, "vendor": "D-Link Wireless", "lat": 27.192255, "lon": 75.956064, "color": "#3B82F6"}, {"id": 31, "ssid": "iBall-Baton_Legacy_WEP_31", "bssid": "00:23:CD:2B:11:24", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WEP-64 (Crackable in 2 min)", "risk": "VULNERABLE", "rssi": -82, "vendor": "iBall-Baton Legacy", "lat": 27.19219, "lon": 75.950501, "color": "#EF4444"}, {"id": 32, "ssid": "NIMS_Campus_AP_Ch6_2", "bssid": "48:8F:5A:42:1B:3C", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -76, "vendor": "MikroTik RouterBOARD", "lat": 27.193838, "lon": 75.950487, "color": "#3B82F6"}, {"id": 33, "ssid": "NIMS_Campus_AP_Ch6_3", "bssid": "24:DE:C6:4B:0D:5D", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -58, "vendor": "Aruba IAP-305", "lat": 27.185992, "lon": 75.956537, "color": "#3B82F6"}, {"id": 34, "ssid": "NIMS_Campus_AP_Ch6_4", "bssid": "F0:9F:C2:4C:38:3F", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -80, "vendor": "Ubiquiti UniFi Pro", "lat": 27.189748, "lon": 75.959144, "color": "#3B82F6"}, {"id": 35, "ssid": "NIMS_Campus_AP_Ch6_5", "bssid": "24:DE:C6:26:2A:3B", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -56, "vendor": "Aruba IAP-305", "lat": 27.189877, "lon": 75.952217, "color": "#3B82F6"}, {"id": 36, "ssid": "NIMS_Campus_AP_Ch6_6", "bssid": "70:7B:E8:1B:5E:42", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -67, "vendor": "Huawei Enterprise", "lat": 27.186456, "lon": 75.949332, "color": "#3B82F6"}, {"id": 37, "ssid": "NIMS_Campus_AP_Ch7_1", "bssid": "20:0C:C8:61:4C:0C", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -81, "vendor": "Netgear Nighthawk", "lat": 27.190013, "lon": 75.950933, "color": "#3B82F6"}, {"id": 38, "ssid": "NIMS_Campus_AP_Ch7_2", "bssid": "F0:9F:C2:4C:59:17", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -44, "vendor": "Ubiquiti UniFi Pro", "lat": 27.187865, "lon": 75.953346, "color": "#3B82F6"}, {"id": 39, "ssid": "NIMS_Campus_AP_Ch7_3", "bssid": "40:4E:36:30:34:17", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -55, "vendor": "JioFiber Home Gateway", "lat": 27.190969, "lon": 75.952692, "color": "#3B82F6"}, {"id": 40, "ssid": "NIMS_Campus_AP_Ch7_4", "bssid": "24:DE:C6:5C:45:2B", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -45, "vendor": "Aruba IAP-305", "lat": 27.185539, "lon": 75.956586, "color": "#3B82F6"}, {"id": 41, "ssid": "NIMS_Campus_AP_Ch7_5", "bssid": "24:DE:C6:2F:1F:53", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -72, "vendor": "Aruba IAP-305", "lat": 27.18654, "lon": 75.955463, "color": "#3B82F6"}, {"id": 42, "ssid": "NIMS_Campus_AP_Ch7_6", "bssid": "70:7B:E8:0A:42:25", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -80, "vendor": "Huawei Enterprise", "lat": 27.185589, "lon": 75.951737, "color": "#3B82F6"}, {"id": 43, "ssid": "NIMS_Campus_AP_Ch8_1", "bssid": "50:D4:F7:29:62:0B", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -67, "vendor": "TP-Link Archer", "lat": 27.186807, "lon": 75.952084, "color": "#3B82F6"}, {"id": 44, "ssid": "NIMS_Campus_AP_Ch8_2", "bssid": "24:DE:C6:16:2E:41", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -47, "vendor": "Aruba IAP-305", "lat": 27.189201, "lon": 75.955837, "color": "#3B82F6"}, {"id": 45, "ssid": "NIMS_Campus_AP_Ch8_3", "bssid": "00:23:CD:56:39:57", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -48, "vendor": "iBall-Baton Legacy", "lat": 27.192641, "lon": 75.954415, "color": "#3B82F6"}, {"id": 46, "ssid": "NIMS_Campus_AP_Ch8_4", "bssid": "F0:9F:C2:2D:43:37", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -44, "vendor": "Ubiquiti UniFi Pro", "lat": 27.187924, "lon": 75.952697, "color": "#3B82F6"}, {"id": 47, "ssid": "NIMS_Campus_AP_Ch8_5", "bssid": "14:D6:4D:49:1D:34", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -60, "vendor": "D-Link Wireless", "lat": 27.193944, "lon": 75.955492, "color": "#3B82F6"}, {"id": 48, "ssid": "NIMS_Campus_AP_Ch8_6", "bssid": "00:23:CD:13:39:41", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -70, "vendor": "iBall-Baton Legacy", "lat": 27.1901, "lon": 75.950556, "color": "#3B82F6"}, {"id": 49, "ssid": "NIMS_Campus_AP_Ch9_1", "bssid": "F0:9F:C2:18:42:59", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -81, "vendor": "Ubiquiti UniFi Pro", "lat": 27.189967, "lon": 75.951478, "color": "#3B82F6"}, {"id": 50, "ssid": "NIMS_Campus_AP_Ch9_2", "bssid": "00:23:CD:57:57:18", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -55, "vendor": "iBall-Baton Legacy", "lat": 27.187838, "lon": 75.9552, "color": "#3B82F6"}, {"id": 51, "ssid": "NIMS_Campus_AP_Ch9_3", "bssid": "24:DE:C6:4B:17:33", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -56, "vendor": "Aruba IAP-305", "lat": 27.187373, "lon": 75.955228, "color": "#3B82F6"}, {"id": 52, "ssid": "NIMS_Campus_AP_Ch9_4", "bssid": "24:DE:C6:31:32:25", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -64, "vendor": "Aruba IAP-305", "lat": 27.185722, "lon": 75.95482, "color": "#3B82F6"}, {"id": 53, "ssid": "NIMS_Campus_AP_Ch9_5", "bssid": "14:D6:4D:2D:4E:51", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -48, "vendor": "D-Link Wireless", "lat": 27.19375, "lon": 75.954963, "color": "#3B82F6"}, {"id": 54, "ssid": "NIMS_Campus_AP_Ch9_6", "bssid": "50:D4:F7:52:0E:4F", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -53, "vendor": "TP-Link Archer", "lat": 27.18553, "lon": 75.955944, "color": "#3B82F6"}, {"id": 55, "ssid": "NIMS_Campus_FreeGuest_Open", "bssid": "E0:55:3D:1F:61:1E", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "Open (Unencrypted)", "risk": "VULNERABLE", "rssi": -57, "vendor": "Cisco Meraki AP", "lat": 27.191421, "lon": 75.953869, "color": "#EF4444"}, {"id": 56, "ssid": "NIMS_Campus_AP_Ch10_2", "bssid": "E0:55:3D:28:2A:39", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -63, "vendor": "Cisco Meraki AP", "lat": 27.194079, "lon": 75.958237, "color": "#3B82F6"}, {"id": 57, "ssid": "NIMS_Campus_AP_Ch10_3", "bssid": "00:23:CD:17:48:3E", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -74, "vendor": "iBall-Baton Legacy", "lat": 27.188542, "lon": 75.955676, "color": "#3B82F6"}, {"id": 58, "ssid": "NIMS_Campus_AP_Ch10_4", "bssid": "E0:55:3D:47:44:1C", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -79, "vendor": "Cisco Meraki AP", "lat": 27.19351, "lon": 75.955205, "color": "#3B82F6"}, {"id": 59, "ssid": "NIMS_Campus_AP_Ch10_5", "bssid": "BC:30:7D:4C:53:3C", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -63, "vendor": "Airtel Xstream Fiber", "lat": 27.188693, "lon": 75.953175, "color": "#3B82F6"}, {"id": 60, "ssid": "NIMS_Campus_AP_Ch10_6", "bssid": "F0:9F:C2:1E:10:3E", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -64, "vendor": "Ubiquiti UniFi Pro", "lat": 27.190095, "lon": 75.955995, "color": "#3B82F6"}, {"id": 61, "ssid": "NIMS_Campus_AP_Ch11_1", "bssid": "20:0C:C8:27:21:4A", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -43, "vendor": "Netgear Nighthawk", "lat": 27.185756, "lon": 75.949623, "color": "#3B82F6"}, {"id": 62, "ssid": "NIMS_Campus_AP_Ch11_2", "bssid": "F0:9F:C2:51:36:12", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -74, "vendor": "Ubiquiti UniFi Pro", "lat": 27.185456, "lon": 75.954079, "color": "#3B82F6"}, {"id": 63, "ssid": "NIMS_Campus_AP_Ch11_3", "bssid": "40:4E:36:46:30:34", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -53, "vendor": "JioFiber Home Gateway", "lat": 27.192508, "lon": 75.955266, "color": "#3B82F6"}, {"id": 64, "ssid": "NIMS_Campus_AP_Ch11_4", "bssid": "50:D4:F7:20:32:0B", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -70, "vendor": "TP-Link Archer", "lat": 27.192495, "lon": 75.954104, "color": "#3B82F6"}, {"id": 65, "ssid": "NIMS_Campus_AP_Ch11_5", "bssid": "BC:30:7D:38:48:4C", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -46, "vendor": "Airtel Xstream Fiber", "lat": 27.19311, "lon": 75.949478, "color": "#3B82F6"}, {"id": 66, "ssid": "NIMS_Campus_AP_Ch11_6", "bssid": "20:0C:C8:3A:15:5F", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -72, "vendor": "Netgear Nighthawk", "lat": 27.189096, "lon": 75.949315, "color": "#3B82F6"}, {"id": 67, "ssid": "NIMS_Campus_SecureWPA3_67", "bssid": "50:D4:F7:1F:11:55", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA3-SAE (Wi-Fi 6 Protected)", "risk": "SECURE", "rssi": -45, "vendor": "TP-Link Archer", "lat": 27.186015, "lon": 75.949849, "color": "#10B981"}, {"id": 68, "ssid": "NIMS_Campus_AP_Ch12_2", "bssid": "14:D6:4D:24:21:17", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -82, "vendor": "D-Link Wireless", "lat": 27.18503, "lon": 75.955535, "color": "#3B82F6"}, {"id": 69, "ssid": "NIMS_Campus_AP_Ch12_3", "bssid": "E0:55:3D:25:31:2F", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -42, "vendor": "Cisco Meraki AP", "lat": 27.191602, "lon": 75.94932, "color": "#3B82F6"}, {"id": 70, "ssid": "NIMS_Campus_AP_Ch12_4", "bssid": "40:4E:36:3D:31:51", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -55, "vendor": "JioFiber Home Gateway", "lat": 27.186647, "lon": 75.955323, "color": "#3B82F6"}, {"id": 71, "ssid": "NIMS_Campus_AP_Ch12_5", "bssid": "14:D6:4D:5C:47:0B", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -78, "vendor": "D-Link Wireless", "lat": 27.189712, "lon": 75.954683, "color": "#3B82F6"}, {"id": 72, "ssid": "NIMS_Campus_AP_Ch12_6", "bssid": "14:D6:4D:42:45:33", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -69, "vendor": "D-Link Wireless", "lat": 27.189045, "lon": 75.958617, "color": "#3B82F6"}, {"id": 73, "ssid": "NIMS_Campus_AP_Ch13_1", "bssid": "40:4E:36:16:15:0E", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -77, "vendor": "JioFiber Home Gateway", "lat": 27.185946, "lon": 75.952143, "color": "#3B82F6"}, {"id": 74, "ssid": "NIMS_Campus_AP_Ch13_2", "bssid": "20:0C:C8:1D:12:3C", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -75, "vendor": "Netgear Nighthawk", "lat": 27.194663, "lon": 75.952574, "color": "#3B82F6"}, {"id": 75, "ssid": "NIMS_Campus_AP_Ch13_3", "bssid": "F0:9F:C2:42:1D:4D", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -64, "vendor": "Ubiquiti UniFi Pro", "lat": 27.187886, "lon": 75.953313, "color": "#3B82F6"}, {"id": 76, "ssid": "NIMS_Campus_AP_Ch13_4", "bssid": "E0:55:3D:14:13:1B", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -63, "vendor": "Cisco Meraki AP", "lat": 27.186639, "lon": 75.953066, "color": "#3B82F6"}, {"id": 77, "ssid": "NIMS_Campus_AP_Ch13_5", "bssid": "20:0C:C8:55:49:15", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -85, "vendor": "Netgear Nighthawk", "lat": 27.19227, "lon": 75.953291, "color": "#3B82F6"}, {"id": 78, "ssid": "NIMS_Campus_AP_Ch13_6", "bssid": "50:D4:F7:1B:44:24", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -82, "vendor": "TP-Link Archer", "lat": 27.192762, "lon": 75.958685, "color": "#3B82F6"}, {"id": 79, "ssid": "NIMS_Campus_AP_Ch14_1", "bssid": "48:8F:5A:10:1A:5B", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -54, "vendor": "MikroTik RouterBOARD", "lat": 27.193758, "lon": 75.952822, "color": "#3B82F6"}, {"id": 80, "ssid": "NIMS_Campus_AP_Ch14_2", "bssid": "F0:9F:C2:35:18:46", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -79, "vendor": "Ubiquiti UniFi Pro", "lat": 27.188568, "lon": 75.956635, "color": "#3B82F6"}, {"id": 81, "ssid": "NIMS_Campus_AP_Ch14_3", "bssid": "BC:30:7D:5C:4E:2F", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -55, "vendor": "Airtel Xstream Fiber", "lat": 27.187225, "lon": 75.950069, "color": "#3B82F6"}, {"id": 82, "ssid": "NIMS_Campus_AP_Ch14_4", "bssid": "14:D6:4D:1C:3D:4F", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -71, "vendor": "D-Link Wireless", "lat": 27.188969, "lon": 75.955648, "color": "#3B82F6"}, {"id": 83, "ssid": "NIMS_Campus_AP_Ch14_5", "bssid": "BC:30:7D:3B:0A:2D", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -73, "vendor": "Airtel Xstream Fiber", "lat": 27.186653, "lon": 75.954233, "color": "#3B82F6"}, {"id": 84, "ssid": "NIMS_Campus_AP_Ch14_6", "bssid": "00:23:CD:60:60:1C", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -83, "vendor": "iBall-Baton Legacy", "lat": 27.185384, "lon": 75.954829, "color": "#3B82F6"}, {"id": 85, "ssid": "NIMS_Campus_5G_Gigabit_Ch36_1", "bssid": "E0:55:3D:5C:52:34", "channel": 36, "band": "5 GHz", "frequency": 5180, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -74, "vendor": "Cisco Meraki AP", "lat": 27.186154, "lon": 75.950169, "color": "#10B981"}, {"id": 86, "ssid": "NIMS_Campus_5G_Gigabit_Ch36_2", "bssid": "70:7B:E8:55:2F:32", "channel": 36, "band": "5 GHz", "frequency": 5180, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -79, "vendor": "Huawei Enterprise", "lat": 27.192689, "lon": 75.956737, "color": "#06B6D4"}, {"id": 87, "ssid": "NIMS_Campus_5G_Gigabit_Ch36_3", "bssid": "48:8F:5A:11:37:45", "channel": 36, "band": "5 GHz", "frequency": 5180, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -67, "vendor": "MikroTik RouterBOARD", "lat": 27.188724, "lon": 75.959077, "color": "#10B981"}, {"id": 88, "ssid": "NIMS_Campus_5G_Gigabit_Ch40_1", "bssid": "BC:30:7D:43:21:3F", "channel": 40, "band": "5 GHz", "frequency": 5200, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -59, "vendor": "Airtel Xstream Fiber", "lat": 27.185902, "lon": 75.953701, "color": "#10B981"}, {"id": 89, "ssid": "NIMS_Campus_5G_Gigabit_Ch40_2", "bssid": "00:23:CD:18:12:2B", "channel": 40, "band": "5 GHz", "frequency": 5200, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -66, "vendor": "iBall-Baton Legacy", "lat": 27.193301, "lon": 75.956555, "color": "#06B6D4"}, {"id": 90, "ssid": "NIMS_Campus_5G_Gigabit_Ch40_3", "bssid": "40:4E:36:2F:3A:51", "channel": 40, "band": "5 GHz", "frequency": 5200, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -62, "vendor": "JioFiber Home Gateway", "lat": 27.188509, "lon": 75.951098, "color": "#10B981"}, {"id": 91, "ssid": "NIMS_Campus_5G_Gigabit_Ch44_1", "bssid": "20:0C:C8:19:2E:5D", "channel": 44, "band": "5 GHz", "frequency": 5220, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -67, "vendor": "Netgear Nighthawk", "lat": 27.193807, "lon": 75.954526, "color": "#10B981"}, {"id": 92, "ssid": "NIMS_Campus_5G_Gigabit_Ch44_2", "bssid": "48:8F:5A:14:21:13", "channel": 44, "band": "5 GHz", "frequency": 5220, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -76, "vendor": "MikroTik RouterBOARD", "lat": 27.193146, "lon": 75.95489, "color": "#06B6D4"}, {"id": 93, "ssid": "NIMS_Campus_5G_Gigabit_Ch44_3", "bssid": "50:D4:F7:23:26:1C", "channel": 44, "band": "5 GHz", "frequency": 5220, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -55, "vendor": "TP-Link Archer", "lat": 27.194186, "lon": 75.956197, "color": "#10B981"}, {"id": 94, "ssid": "NIMS_Campus_5G_Gigabit_Ch48_1", "bssid": "40:4E:36:4A:20:0C", "channel": 48, "band": "5 GHz", "frequency": 5240, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -52, "vendor": "JioFiber Home Gateway", "lat": 27.190177, "lon": 75.955354, "color": "#10B981"}, {"id": 95, "ssid": "NIMS_Campus_5G_Gigabit_Ch48_2", "bssid": "50:D4:F7:31:26:43", "channel": 48, "band": "5 GHz", "frequency": 5240, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -70, "vendor": "TP-Link Archer", "lat": 27.190903, "lon": 75.956789, "color": "#06B6D4"}, {"id": 96, "ssid": "NIMS_Campus_5G_Gigabit_Ch48_3", "bssid": "00:23:CD:59:57:4F", "channel": 48, "band": "5 GHz", "frequency": 5240, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -60, "vendor": "iBall-Baton Legacy", "lat": 27.191375, "lon": 75.95436, "color": "#10B981"}, {"id": 97, "ssid": "NIMS_Campus_5G_Gigabit_Ch52_1", "bssid": "BC:30:7D:34:20:47", "channel": 52, "band": "5 GHz", "frequency": 5260, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -61, "vendor": "Airtel Xstream Fiber", "lat": 27.187417, "lon": 75.949786, "color": "#10B981"}, {"id": 98, "ssid": "NIMS_Campus_5G_Gigabit_Ch52_2", "bssid": "50:D4:F7:30:2D:54", "channel": 52, "band": "5 GHz", "frequency": 5260, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -74, "vendor": "TP-Link Archer", "lat": 27.190725, "lon": 75.956843, "color": "#06B6D4"}, {"id": 99, "ssid": "NIMS_Campus_5G_Gigabit_Ch52_3", "bssid": "50:D4:F7:2B:5E:1A", "channel": 52, "band": "5 GHz", "frequency": 5260, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -54, "vendor": "TP-Link Archer", "lat": 27.185283, "lon": 75.954952, "color": "#10B981"}, {"id": 100, "ssid": "NIMS_Campus_5G_Gigabit_Ch56_1", "bssid": "F0:9F:C2:16:49:14", "channel": 56, "band": "5 GHz", "frequency": 5280, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -52, "vendor": "Ubiquiti UniFi Pro", "lat": 27.188201, "lon": 75.954584, "color": "#10B981"}, {"id": 101, "ssid": "NIMS_Campus_5G_Gigabit_Ch56_2", "bssid": "70:7B:E8:32:41:62", "channel": 56, "band": "5 GHz", "frequency": 5280, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -49, "vendor": "Huawei Enterprise", "lat": 27.19192, "lon": 75.95724, "color": "#06B6D4"}, {"id": 102, "ssid": "NIMS_Campus_5G_Gigabit_Ch56_3", "bssid": "20:0C:C8:1D:10:47", "channel": 56, "band": "5 GHz", "frequency": 5280, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -51, "vendor": "Netgear Nighthawk", "lat": 27.194004, "lon": 75.952699, "color": "#10B981"}, {"id": 103, "ssid": "NIMS_Campus_5G_Gigabit_Ch60_1", "bssid": "14:D6:4D:43:15:16", "channel": 60, "band": "5 GHz", "frequency": 5300, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -46, "vendor": "D-Link Wireless", "lat": 27.185837, "lon": 75.9521, "color": "#10B981"}, {"id": 104, "ssid": "NIMS_Campus_5G_Gigabit_Ch60_2", "bssid": "F0:9F:C2:0C:22:4C", "channel": 60, "band": "5 GHz", "frequency": 5300, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -77, "vendor": "Ubiquiti UniFi Pro", "lat": 27.185924, "lon": 75.951607, "color": "#06B6D4"}, {"id": 105, "ssid": "NIMS_Campus_5G_Gigabit_Ch60_3", "bssid": "50:D4:F7:27:31:52", "channel": 60, "band": "5 GHz", "frequency": 5300, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -55, "vendor": "TP-Link Archer", "lat": 27.189602, "lon": 75.950169, "color": "#10B981"}, {"id": 106, "ssid": "NIMS_Campus_5G_Gigabit_Ch64_1", "bssid": "F0:9F:C2:45:10:4C", "channel": 64, "band": "5 GHz", "frequency": 5320, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -67, "vendor": "Ubiquiti UniFi Pro", "lat": 27.187452, "lon": 75.95385, "color": "#10B981"}, {"id": 107, "ssid": "NIMS_Campus_5G_Gigabit_Ch64_2", "bssid": "14:D6:4D:1A:13:41", "channel": 64, "band": "5 GHz", "frequency": 5320, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -55, "vendor": "D-Link Wireless", "lat": 27.185493, "lon": 75.952997, "color": "#06B6D4"}, {"id": 108, "ssid": "NIMS_Campus_5G_Gigabit_Ch64_3", "bssid": "50:D4:F7:1A:63:0E", "channel": 64, "band": "5 GHz", "frequency": 5320, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -53, "vendor": "TP-Link Archer", "lat": 27.19212, "lon": 75.957842, "color": "#10B981"}, {"id": 109, "ssid": "NIMS_Campus_5G_Gigabit_Ch100_1", "bssid": "BC:30:7D:50:19:5D", "channel": 100, "band": "5 GHz", "frequency": 5500, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -55, "vendor": "Airtel Xstream Fiber", "lat": 27.188573, "lon": 75.950804, "color": "#10B981"}, {"id": 110, "ssid": "NIMS_Campus_5G_Gigabit_Ch100_2", "bssid": "E0:55:3D:1D:4A:0A", "channel": 100, "band": "5 GHz", "frequency": 5500, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -74, "vendor": "Cisco Meraki AP", "lat": 27.190361, "lon": 75.954982, "color": "#06B6D4"}, {"id": 111, "ssid": "NIMS_Campus_5G_Gigabit_Ch100_3", "bssid": "00:23:CD:1D:3B:29", "channel": 100, "band": "5 GHz", "frequency": 5500, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -72, "vendor": "iBall-Baton Legacy", "lat": 27.187169, "lon": 75.955568, "color": "#10B981"}, {"id": 112, "ssid": "NIMS_Campus_5G_Gigabit_Ch104_1", "bssid": "00:23:CD:50:2E:31", "channel": 104, "band": "5 GHz", "frequency": 5520, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -46, "vendor": "iBall-Baton Legacy", "lat": 27.19292, "lon": 75.954514, "color": "#10B981"}, {"id": 113, "ssid": "NIMS_Campus_5G_Gigabit_Ch104_2", "bssid": "20:0C:C8:4B:21:60", "channel": 104, "band": "5 GHz", "frequency": 5520, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -74, "vendor": "Netgear Nighthawk", "lat": 27.192652, "lon": 75.958001, "color": "#06B6D4"}, {"id": 114, "ssid": "NIMS_Campus_5G_Gigabit_Ch104_3", "bssid": "70:7B:E8:4D:4D:58", "channel": 104, "band": "5 GHz", "frequency": 5520, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -64, "vendor": "Huawei Enterprise", "lat": 27.193949, "lon": 75.9582, "color": "#10B981"}, {"id": 115, "ssid": "NIMS_Campus_5G_Gigabit_Ch149_1", "bssid": "E0:55:3D:34:36:0B", "channel": 149, "band": "5 GHz", "frequency": 5745, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -51, "vendor": "Cisco Meraki AP", "lat": 27.189613, "lon": 75.951377, "color": "#10B981"}, {"id": 116, "ssid": "NIMS_Campus_5G_Gigabit_Ch149_2", "bssid": "20:0C:C8:0C:61:17", "channel": 149, "band": "5 GHz", "frequency": 5745, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -62, "vendor": "Netgear Nighthawk", "lat": 27.187691, "lon": 75.953155, "color": "#06B6D4"}, {"id": 117, "ssid": "NIMS_Campus_5G_Gigabit_Ch149_3", "bssid": "40:4E:36:41:14:33", "channel": 149, "band": "5 GHz", "frequency": 5745, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -63, "vendor": "JioFiber Home Gateway", "lat": 27.18979, "lon": 75.949439, "color": "#10B981"}, {"id": 118, "ssid": "NIMS_Campus_5G_Gigabit_Ch153_1", "bssid": "14:D6:4D:3A:1F:31", "channel": 153, "band": "5 GHz", "frequency": 5765, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -75, "vendor": "D-Link Wireless", "lat": 27.186022, "lon": 75.956776, "color": "#10B981"}, {"id": 119, "ssid": "NIMS_Campus_5G_Gigabit_Ch153_2", "bssid": "50:D4:F7:14:34:42", "channel": 153, "band": "5 GHz", "frequency": 5765, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -56, "vendor": "TP-Link Archer", "lat": 27.18806, "lon": 75.951207, "color": "#06B6D4"}, {"id": 120, "ssid": "NIMS_Campus_5G_Gigabit_Ch153_3", "bssid": "E0:55:3D:1A:5A:4A", "channel": 153, "band": "5 GHz", "frequency": 5765, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -68, "vendor": "Cisco Meraki AP", "lat": 27.18988, "lon": 75.958892, "color": "#10B981"}, {"id": 121, "ssid": "NIMS_Campus_5G_Gigabit_Ch157_1", "bssid": "14:D6:4D:44:2E:2E", "channel": 157, "band": "5 GHz", "frequency": 5785, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -54, "vendor": "D-Link Wireless", "lat": 27.187461, "lon": 75.957718, "color": "#10B981"}, {"id": 122, "ssid": "NIMS_Campus_5G_Gigabit_Ch157_2", "bssid": "E0:55:3D:1A:31:26", "channel": 157, "band": "5 GHz", "frequency": 5785, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -80, "vendor": "Cisco Meraki AP", "lat": 27.188853, "lon": 75.951999, "color": "#06B6D4"}, {"id": 123, "ssid": "NIMS_Campus_5G_Gigabit_Ch157_3", "bssid": "24:DE:C6:15:55:3A", "channel": 157, "band": "5 GHz", "frequency": 5785, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -64, "vendor": "Aruba IAP-305", "lat": 27.193116, "lon": 75.951512, "color": "#10B981"}, {"id": 124, "ssid": "NIMS_Campus_5G_Gigabit_Ch161_1", "bssid": "20:0C:C8:3B:26:1A", "channel": 161, "band": "5 GHz", "frequency": 5805, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -47, "vendor": "Netgear Nighthawk", "lat": 27.186782, "lon": 75.951921, "color": "#10B981"}, {"id": 125, "ssid": "NIMS_Campus_5G_Gigabit_Ch161_2", "bssid": "24:DE:C6:37:2D:1B", "channel": 161, "band": "5 GHz", "frequency": 5805, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -73, "vendor": "Aruba IAP-305", "lat": 27.186716, "lon": 75.958609, "color": "#06B6D4"}, {"id": 126, "ssid": "NIMS_Campus_5G_Gigabit_Ch161_3", "bssid": "14:D6:4D:2F:62:39", "channel": 161, "band": "5 GHz", "frequency": 5805, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -73, "vendor": "D-Link Wireless", "lat": 27.188484, "lon": 75.952228, "color": "#10B981"}, {"id": 127, "ssid": "Jaipur_Central_AP_Ch1_1", "bssid": "14:D6:4D:54:52:3C", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -53, "vendor": "D-Link Wireless", "lat": 26.947152, "lon": 75.769571, "color": "#3B82F6"}, {"id": 128, "ssid": "Jaipur_Central_AP_Ch1_2", "bssid": "BC:30:7D:51:36:13", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -57, "vendor": "Airtel Xstream Fiber", "lat": 26.923787, "lon": 75.788675, "color": "#3B82F6"}, {"id": 129, "ssid": "Jaipur_Central_AP_Ch1_3", "bssid": "E0:55:3D:10:23:3C", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -65, "vendor": "Cisco Meraki AP", "lat": 26.889451, "lon": 75.79941, "color": "#3B82F6"}, {"id": 130, "ssid": "Jaipur_Central_AP_Ch1_4", "bssid": "14:D6:4D:31:50:2D", "channel": 1, "band": "2.4 GHz", "frequency": 2412, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -65, "vendor": "D-Link Wireless", "lat": 26.908881, "lon": 75.819135, "color": "#3B82F6"}, {"id": 131, "ssid": "Jaipur_Central_AP_Ch2_1", "bssid": "14:D6:4D:41:4A:14", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -74, "vendor": "D-Link Wireless", "lat": 26.937198, "lon": 75.809574, "color": "#3B82F6"}, {"id": 132, "ssid": "Jaipur_Central_AP_Ch2_2", "bssid": "24:DE:C6:21:23:4B", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -60, "vendor": "Aruba IAP-305", "lat": 26.894767, "lon": 75.808382, "color": "#3B82F6"}, {"id": 133, "ssid": "Jaipur_Central_AP_Ch2_3", "bssid": "70:7B:E8:4A:24:0D", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -62, "vendor": "Huawei Enterprise", "lat": 26.919713, "lon": 75.788183, "color": "#3B82F6"}, {"id": 134, "ssid": "Jaipur_Central_AP_Ch2_4", "bssid": "50:D4:F7:42:1D:2B", "channel": 2, "band": "2.4 GHz", "frequency": 2417, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -45, "vendor": "TP-Link Archer", "lat": 26.907049, "lon": 75.772242, "color": "#3B82F6"}, {"id": 135, "ssid": "Jaipur_Central_AP_Ch3_1", "bssid": "14:D6:4D:5A:53:1C", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -65, "vendor": "D-Link Wireless", "lat": 26.933432, "lon": 75.821368, "color": "#3B82F6"}, {"id": 136, "ssid": "Jaipur_Central_AP_Ch3_2", "bssid": "50:D4:F7:17:20:24", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -68, "vendor": "TP-Link Archer", "lat": 26.889631, "lon": 75.818078, "color": "#3B82F6"}, {"id": 137, "ssid": "Jaipur_Central_AP_Ch3_3", "bssid": "E0:55:3D:51:3E:31", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -75, "vendor": "Cisco Meraki AP", "lat": 26.88076, "lon": 75.804079, "color": "#3B82F6"}, {"id": 138, "ssid": "Jaipur_Central_AP_Ch3_4", "bssid": "48:8F:5A:25:0B:1E", "channel": 3, "band": "2.4 GHz", "frequency": 2422, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -84, "vendor": "MikroTik RouterBOARD", "lat": 26.910669, "lon": 75.780773, "color": "#3B82F6"}, {"id": 139, "ssid": "Jaipur_Central_FreeGuest_Open", "bssid": "24:DE:C6:46:1B:20", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "Open (Unencrypted)", "risk": "VULNERABLE", "rssi": -43, "vendor": "Aruba IAP-305", "lat": 26.927283, "lon": 75.775438, "color": "#EF4444"}, {"id": 140, "ssid": "Jaipur_Central_AP_Ch4_2", "bssid": "14:D6:4D:4E:23:10", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -82, "vendor": "D-Link Wireless", "lat": 26.904935, "lon": 75.813687, "color": "#3B82F6"}, {"id": 141, "ssid": "Jaipur_Central_AP_Ch4_3", "bssid": "70:7B:E8:4D:5A:4C", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -60, "vendor": "Huawei Enterprise", "lat": 26.937665, "lon": 75.811281, "color": "#3B82F6"}, {"id": 142, "ssid": "Jaipur_Central_AP_Ch4_4", "bssid": "50:D4:F7:2A:3B:3D", "channel": 4, "band": "2.4 GHz", "frequency": 2427, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -43, "vendor": "TP-Link Archer", "lat": 26.906881, "lon": 75.763624, "color": "#3B82F6"}, {"id": 143, "ssid": "Jaipur_Central_SecureWPA3_143", "bssid": "14:D6:4D:54:4D:33", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA3-SAE (Wi-Fi 6 Protected)", "risk": "SECURE", "rssi": -44, "vendor": "D-Link Wireless", "lat": 26.916358, "lon": 75.791279, "color": "#10B981"}, {"id": 144, "ssid": "Jaipur_Central_AP_Ch5_2", "bssid": "24:DE:C6:1C:41:0B", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -84, "vendor": "Aruba IAP-305", "lat": 26.945642, "lon": 75.805373, "color": "#3B82F6"}, {"id": 145, "ssid": "Jaipur_Central_AP_Ch5_3", "bssid": "50:D4:F7:12:18:37", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -75, "vendor": "TP-Link Archer", "lat": 26.90773, "lon": 75.818324, "color": "#3B82F6"}, {"id": 146, "ssid": "Jaipur_Central_AP_Ch5_4", "bssid": "00:23:CD:4F:29:44", "channel": 5, "band": "2.4 GHz", "frequency": 2432, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -48, "vendor": "iBall-Baton Legacy", "lat": 26.913199, "lon": 75.808601, "color": "#3B82F6"}, {"id": 147, "ssid": "iBall-Baton_Legacy_WEP_147", "bssid": "14:D6:4D:55:15:13", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WEP-64 (Crackable in 2 min)", "risk": "VULNERABLE", "rssi": -84, "vendor": "D-Link Wireless", "lat": 26.908924, "lon": 75.805447, "color": "#EF4444"}, {"id": 148, "ssid": "Jaipur_Central_AP_Ch6_2", "bssid": "F0:9F:C2:32:61:60", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -74, "vendor": "Ubiquiti UniFi Pro", "lat": 26.906045, "lon": 75.799206, "color": "#3B82F6"}, {"id": 149, "ssid": "Jaipur_Central_AP_Ch6_3", "bssid": "F0:9F:C2:57:3D:5F", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -60, "vendor": "Ubiquiti UniFi Pro", "lat": 26.897642, "lon": 75.786527, "color": "#3B82F6"}, {"id": 150, "ssid": "Jaipur_Central_AP_Ch6_4", "bssid": "14:D6:4D:36:28:20", "channel": 6, "band": "2.4 GHz", "frequency": 2437, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -55, "vendor": "D-Link Wireless", "lat": 26.90141, "lon": 75.780929, "color": "#3B82F6"}, {"id": 151, "ssid": "Jaipur_Central_AP_Ch7_1", "bssid": "48:8F:5A:3D:27:5F", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -67, "vendor": "MikroTik RouterBOARD", "lat": 26.908294, "lon": 75.802086, "color": "#3B82F6"}, {"id": 152, "ssid": "Jaipur_Central_AP_Ch7_2", "bssid": "48:8F:5A:26:3B:2A", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -51, "vendor": "MikroTik RouterBOARD", "lat": 26.880963, "lon": 75.753973, "color": "#3B82F6"}, {"id": 153, "ssid": "Jaipur_Central_AP_Ch7_3", "bssid": "24:DE:C6:19:5A:1C", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -83, "vendor": "Aruba IAP-305", "lat": 26.884566, "lon": 75.817731, "color": "#3B82F6"}, {"id": 154, "ssid": "Jaipur_Central_AP_Ch7_4", "bssid": "24:DE:C6:11:2D:4C", "channel": 7, "band": "2.4 GHz", "frequency": 2442, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -76, "vendor": "Aruba IAP-305", "lat": 26.922857, "lon": 75.768084, "color": "#3B82F6"}, {"id": 155, "ssid": "Jaipur_Central_AP_Ch8_1", "bssid": "BC:30:7D:2C:3C:5E", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -75, "vendor": "Airtel Xstream Fiber", "lat": 26.911456, "lon": 75.765417, "color": "#3B82F6"}, {"id": 156, "ssid": "Jaipur_Central_AP_Ch8_2", "bssid": "48:8F:5A:47:30:34", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -54, "vendor": "MikroTik RouterBOARD", "lat": 26.914865, "lon": 75.774177, "color": "#3B82F6"}, {"id": 157, "ssid": "Jaipur_Central_AP_Ch8_3", "bssid": "48:8F:5A:39:59:0A", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -81, "vendor": "MikroTik RouterBOARD", "lat": 26.928773, "lon": 75.803614, "color": "#3B82F6"}, {"id": 158, "ssid": "Jaipur_Central_AP_Ch8_4", "bssid": "24:DE:C6:4A:1F:52", "channel": 8, "band": "2.4 GHz", "frequency": 2447, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -55, "vendor": "Aruba IAP-305", "lat": 26.943951, "lon": 75.791011, "color": "#3B82F6"}, {"id": 159, "ssid": "Jaipur_Central_AP_Ch9_1", "bssid": "40:4E:36:48:56:20", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -58, "vendor": "JioFiber Home Gateway", "lat": 26.88005, "lon": 75.799225, "color": "#3B82F6"}, {"id": 160, "ssid": "Jaipur_Central_AP_Ch9_2", "bssid": "48:8F:5A:62:2B:10", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -84, "vendor": "MikroTik RouterBOARD", "lat": 26.924618, "lon": 75.776324, "color": "#3B82F6"}, {"id": 161, "ssid": "Jaipur_Central_AP_Ch9_3", "bssid": "BC:30:7D:38:19:4B", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -81, "vendor": "Airtel Xstream Fiber", "lat": 26.882383, "lon": 75.810865, "color": "#3B82F6"}, {"id": 162, "ssid": "Jaipur_Central_AP_Ch9_4", "bssid": "40:4E:36:25:45:2D", "channel": 9, "band": "2.4 GHz", "frequency": 2452, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -54, "vendor": "JioFiber Home Gateway", "lat": 26.913407, "lon": 75.792873, "color": "#3B82F6"}, {"id": 163, "ssid": "Jaipur_Central_FreeGuest_Open", "bssid": "14:D6:4D:4C:1B:59", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "Open (Unencrypted)", "risk": "VULNERABLE", "rssi": -61, "vendor": "D-Link Wireless", "lat": 26.941542, "lon": 75.800188, "color": "#EF4444"}, {"id": 164, "ssid": "Jaipur_Central_AP_Ch10_2", "bssid": "70:7B:E8:58:19:42", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -46, "vendor": "Huawei Enterprise", "lat": 26.940278, "lon": 75.819334, "color": "#3B82F6"}, {"id": 165, "ssid": "Jaipur_Central_AP_Ch10_3", "bssid": "00:23:CD:26:4F:37", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -75, "vendor": "iBall-Baton Legacy", "lat": 26.938211, "lon": 75.810082, "color": "#3B82F6"}, {"id": 166, "ssid": "Jaipur_Central_AP_Ch10_4", "bssid": "BC:30:7D:43:3B:18", "channel": 10, "band": "2.4 GHz", "frequency": 2457, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -84, "vendor": "Airtel Xstream Fiber", "lat": 26.896928, "lon": 75.799749, "color": "#3B82F6"}, {"id": 167, "ssid": "Jaipur_Central_AP_Ch11_1", "bssid": "F0:9F:C2:3C:34:15", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -43, "vendor": "Ubiquiti UniFi Pro", "lat": 26.918976, "lon": 75.767792, "color": "#3B82F6"}, {"id": 168, "ssid": "Jaipur_Central_AP_Ch11_2", "bssid": "20:0C:C8:10:4D:53", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -74, "vendor": "Netgear Nighthawk", "lat": 26.916186, "lon": 75.774533, "color": "#3B82F6"}, {"id": 169, "ssid": "Jaipur_Central_AP_Ch11_3", "bssid": "F0:9F:C2:2B:2A:25", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -68, "vendor": "Ubiquiti UniFi Pro", "lat": 26.936042, "lon": 75.779001, "color": "#3B82F6"}, {"id": 170, "ssid": "Jaipur_Central_AP_Ch11_4", "bssid": "50:D4:F7:56:0B:12", "channel": 11, "band": "2.4 GHz", "frequency": 2462, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -51, "vendor": "TP-Link Archer", "lat": 26.904869, "lon": 75.807357, "color": "#3B82F6"}, {"id": 171, "ssid": "Jaipur_Central_SecureWPA3_171", "bssid": "50:D4:F7:1A:2F:21", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA3-SAE (Wi-Fi 6 Protected)", "risk": "SECURE", "rssi": -48, "vendor": "TP-Link Archer", "lat": 26.923573, "lon": 75.790933, "color": "#10B981"}, {"id": 172, "ssid": "Jaipur_Central_AP_Ch12_2", "bssid": "24:DE:C6:2C:53:27", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -83, "vendor": "Aruba IAP-305", "lat": 26.900451, "lon": 75.781399, "color": "#3B82F6"}, {"id": 173, "ssid": "Jaipur_Central_AP_Ch12_3", "bssid": "24:DE:C6:24:50:52", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -71, "vendor": "Aruba IAP-305", "lat": 26.883831, "lon": 75.815168, "color": "#3B82F6"}, {"id": 174, "ssid": "Jaipur_Central_AP_Ch12_4", "bssid": "40:4E:36:63:38:63", "channel": 12, "band": "2.4 GHz", "frequency": 2467, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -75, "vendor": "JioFiber Home Gateway", "lat": 26.883974, "lon": 75.793989, "color": "#3B82F6"}, {"id": 175, "ssid": "Jaipur_Central_AP_Ch13_1", "bssid": "F0:9F:C2:49:4E:52", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -71, "vendor": "Ubiquiti UniFi Pro", "lat": 26.904782, "lon": 75.771267, "color": "#3B82F6"}, {"id": 176, "ssid": "Jaipur_Central_AP_Ch13_2", "bssid": "20:0C:C8:40:18:13", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -77, "vendor": "Netgear Nighthawk", "lat": 26.937885, "lon": 75.763684, "color": "#3B82F6"}, {"id": 177, "ssid": "Jaipur_Central_AP_Ch13_3", "bssid": "14:D6:4D:60:49:36", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -66, "vendor": "D-Link Wireless", "lat": 26.895217, "lon": 75.80911, "color": "#3B82F6"}, {"id": 178, "ssid": "Jaipur_Central_AP_Ch13_4", "bssid": "20:0C:C8:11:11:63", "channel": 13, "band": "2.4 GHz", "frequency": 2472, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -44, "vendor": "Netgear Nighthawk", "lat": 26.925704, "lon": 75.813855, "color": "#3B82F6"}, {"id": 179, "ssid": "Jaipur_Central_AP_Ch14_1", "bssid": "70:7B:E8:41:62:2D", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -42, "vendor": "Huawei Enterprise", "lat": 26.907756, "lon": 75.797812, "color": "#3B82F6"}, {"id": 180, "ssid": "Jaipur_Central_AP_Ch14_2", "bssid": "20:0C:C8:20:3D:51", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -81, "vendor": "Netgear Nighthawk", "lat": 26.916067, "lon": 75.758514, "color": "#3B82F6"}, {"id": 181, "ssid": "Jaipur_Central_AP_Ch14_3", "bssid": "F0:9F:C2:53:2D:30", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -67, "vendor": "Ubiquiti UniFi Pro", "lat": 26.917784, "lon": 75.779439, "color": "#3B82F6"}, {"id": 182, "ssid": "Jaipur_Central_AP_Ch14_4", "bssid": "BC:30:7D:51:39:45", "channel": 14, "band": "2.4 GHz", "frequency": 2484, "security": "WPA2-PSK [AES-CCMP]", "risk": "STANDARD", "rssi": -50, "vendor": "Airtel Xstream Fiber", "lat": 26.935046, "lon": 75.762442, "color": "#3B82F6"}, {"id": 183, "ssid": "Jaipur_Central_5G_Gigabit_Ch36_1", "bssid": "20:0C:C8:44:26:23", "channel": 36, "band": "5 GHz", "frequency": 5180, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -53, "vendor": "Netgear Nighthawk", "lat": 26.936175, "lon": 75.776042, "color": "#10B981"}, {"id": 184, "ssid": "Jaipur_Central_5G_Gigabit_Ch36_2", "bssid": "50:D4:F7:10:24:22", "channel": 36, "band": "5 GHz", "frequency": 5180, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -79, "vendor": "TP-Link Archer", "lat": 26.942475, "lon": 75.768581, "color": "#06B6D4"}, {"id": 185, "ssid": "Jaipur_Central_5G_Gigabit_Ch40_1", "bssid": "40:4E:36:40:5E:27", "channel": 40, "band": "5 GHz", "frequency": 5200, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -80, "vendor": "JioFiber Home Gateway", "lat": 26.938726, "lon": 75.809458, "color": "#10B981"}, {"id": 186, "ssid": "Jaipur_Central_5G_Gigabit_Ch40_2", "bssid": "BC:30:7D:38:3E:23", "channel": 40, "band": "5 GHz", "frequency": 5200, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -60, "vendor": "Airtel Xstream Fiber", "lat": 26.884416, "lon": 75.821577, "color": "#06B6D4"}, {"id": 187, "ssid": "Jaipur_Central_5G_Gigabit_Ch44_1", "bssid": "14:D6:4D:28:29:5C", "channel": 44, "band": "5 GHz", "frequency": 5220, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -61, "vendor": "D-Link Wireless", "lat": 26.913226, "lon": 75.817832, "color": "#10B981"}, {"id": 188, "ssid": "Jaipur_Central_5G_Gigabit_Ch44_2", "bssid": "E0:55:3D:49:1E:21", "channel": 44, "band": "5 GHz", "frequency": 5220, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -59, "vendor": "Cisco Meraki AP", "lat": 26.90788, "lon": 75.781574, "color": "#06B6D4"}, {"id": 189, "ssid": "Jaipur_Central_5G_Gigabit_Ch48_1", "bssid": "50:D4:F7:17:2F:23", "channel": 48, "band": "5 GHz", "frequency": 5240, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -74, "vendor": "TP-Link Archer", "lat": 26.900891, "lon": 75.770553, "color": "#10B981"}, {"id": 190, "ssid": "Jaipur_Central_5G_Gigabit_Ch48_2", "bssid": "70:7B:E8:0C:39:25", "channel": 48, "band": "5 GHz", "frequency": 5240, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -52, "vendor": "Huawei Enterprise", "lat": 26.908576, "lon": 75.797412, "color": "#06B6D4"}, {"id": 191, "ssid": "Jaipur_Central_5G_Gigabit_Ch52_1", "bssid": "24:DE:C6:54:27:32", "channel": 52, "band": "5 GHz", "frequency": 5260, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -56, "vendor": "Aruba IAP-305", "lat": 26.927556, "lon": 75.818747, "color": "#10B981"}, {"id": 192, "ssid": "Jaipur_Central_5G_Gigabit_Ch52_2", "bssid": "20:0C:C8:4C:27:0F", "channel": 52, "band": "5 GHz", "frequency": 5260, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -68, "vendor": "Netgear Nighthawk", "lat": 26.936602, "lon": 75.782951, "color": "#06B6D4"}, {"id": 193, "ssid": "Jaipur_Central_5G_Gigabit_Ch56_1", "bssid": "40:4E:36:3B:3A:5F", "channel": 56, "band": "5 GHz", "frequency": 5280, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -45, "vendor": "JioFiber Home Gateway", "lat": 26.93702, "lon": 75.808318, "color": "#10B981"}, {"id": 194, "ssid": "Jaipur_Central_5G_Gigabit_Ch56_2", "bssid": "50:D4:F7:3C:10:55", "channel": 56, "band": "5 GHz", "frequency": 5280, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -73, "vendor": "TP-Link Archer", "lat": 26.923753, "lon": 75.764548, "color": "#06B6D4"}, {"id": 195, "ssid": "Jaipur_Central_5G_Gigabit_Ch60_1", "bssid": "00:23:CD:62:35:27", "channel": 60, "band": "5 GHz", "frequency": 5300, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -77, "vendor": "iBall-Baton Legacy", "lat": 26.890006, "lon": 75.789649, "color": "#10B981"}, {"id": 196, "ssid": "Jaipur_Central_5G_Gigabit_Ch60_2", "bssid": "70:7B:E8:0C:23:3F", "channel": 60, "band": "5 GHz", "frequency": 5300, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -53, "vendor": "Huawei Enterprise", "lat": 26.922493, "lon": 75.786765, "color": "#06B6D4"}, {"id": 197, "ssid": "Jaipur_Central_5G_Gigabit_Ch64_1", "bssid": "14:D6:4D:4D:32:2E", "channel": 64, "band": "5 GHz", "frequency": 5320, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -65, "vendor": "D-Link Wireless", "lat": 26.887107, "lon": 75.781225, "color": "#10B981"}, {"id": 198, "ssid": "Jaipur_Central_5G_Gigabit_Ch64_2", "bssid": "50:D4:F7:11:1D:29", "channel": 64, "band": "5 GHz", "frequency": 5320, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -77, "vendor": "TP-Link Archer", "lat": 26.918711, "lon": 75.772426, "color": "#06B6D4"}, {"id": 199, "ssid": "Jaipur_Central_5G_Gigabit_Ch100_1", "bssid": "E0:55:3D:59:31:4C", "channel": 100, "band": "5 GHz", "frequency": 5500, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -59, "vendor": "Cisco Meraki AP", "lat": 26.944437, "lon": 75.8103, "color": "#10B981"}, {"id": 200, "ssid": "Jaipur_Central_5G_Gigabit_Ch100_2", "bssid": "E0:55:3D:1F:5C:4F", "channel": 100, "band": "5 GHz", "frequency": 5500, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -54, "vendor": "Cisco Meraki AP", "lat": 26.893087, "lon": 75.788312, "color": "#06B6D4"}, {"id": 201, "ssid": "Jaipur_Central_5G_Gigabit_Ch104_1", "bssid": "E0:55:3D:16:25:12", "channel": 104, "band": "5 GHz", "frequency": 5520, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -54, "vendor": "Cisco Meraki AP", "lat": 26.907886, "lon": 75.805624, "color": "#10B981"}, {"id": 202, "ssid": "Jaipur_Central_5G_Gigabit_Ch104_2", "bssid": "70:7B:E8:59:24:5A", "channel": 104, "band": "5 GHz", "frequency": 5520, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -62, "vendor": "Huawei Enterprise", "lat": 26.88102, "lon": 75.755288, "color": "#06B6D4"}, {"id": 203, "ssid": "Jaipur_Central_5G_Gigabit_Ch149_1", "bssid": "00:23:CD:43:63:17", "channel": 149, "band": "5 GHz", "frequency": 5745, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -77, "vendor": "iBall-Baton Legacy", "lat": 26.879772, "lon": 75.761443, "color": "#10B981"}, {"id": 204, "ssid": "Jaipur_Central_5G_Gigabit_Ch149_2", "bssid": "E0:55:3D:21:32:15", "channel": 149, "band": "5 GHz", "frequency": 5745, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -69, "vendor": "Cisco Meraki AP", "lat": 26.883557, "lon": 75.78548, "color": "#06B6D4"}, {"id": 205, "ssid": "Jaipur_Central_5G_Gigabit_Ch153_1", "bssid": "F0:9F:C2:10:18:17", "channel": 153, "band": "5 GHz", "frequency": 5765, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -46, "vendor": "Ubiquiti UniFi Pro", "lat": 26.89677, "lon": 75.769938, "color": "#10B981"}, {"id": 206, "ssid": "Jaipur_Central_5G_Gigabit_Ch153_2", "bssid": "40:4E:36:41:56:0A", "channel": 153, "band": "5 GHz", "frequency": 5765, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -71, "vendor": "JioFiber Home Gateway", "lat": 26.882262, "lon": 75.814913, "color": "#06B6D4"}, {"id": 207, "ssid": "Jaipur_Central_5G_Gigabit_Ch157_1", "bssid": "F0:9F:C2:2D:41:10", "channel": 157, "band": "5 GHz", "frequency": 5785, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -64, "vendor": "Ubiquiti UniFi Pro", "lat": 26.946246, "lon": 75.76843, "color": "#10B981"}, {"id": 208, "ssid": "Jaipur_Central_5G_Gigabit_Ch157_2", "bssid": "F0:9F:C2:56:47:13", "channel": 157, "band": "5 GHz", "frequency": 5785, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -62, "vendor": "Ubiquiti UniFi Pro", "lat": 26.905432, "lon": 75.757301, "color": "#06B6D4"}, {"id": 209, "ssid": "Jaipur_Central_5G_Gigabit_Ch161_1", "bssid": "E0:55:3D:37:16:1A", "channel": 161, "band": "5 GHz", "frequency": 5805, "security": "WPA3-SAE (Wi-Fi 6 Gigabit)", "risk": "SECURE", "rssi": -75, "vendor": "Cisco Meraki AP", "lat": 26.92896, "lon": 75.763412, "color": "#10B981"}, {"id": 210, "ssid": "Jaipur_Central_5G_Gigabit_Ch161_2", "bssid": "14:D6:4D:52:3C:30", "channel": 161, "band": "5 GHz", "frequency": 5805, "security": "WPA2-PSK [802.11ac 5GHz]", "risk": "STANDARD", "rssi": -70, "vendor": "D-Link Wireless", "lat": 26.901198, "lon": 75.792122, "color": "#06B6D4"}];
+        const landmarkData = [{"name": "\ud83d\udccd NIMS University Main Campus Core", "lat": 27.189814, "lon": 75.954264, "desc": "Main Administrative & Academic Complex"}, {"name": "\ud83d\udcf9 Security Post 1 - Hostel Main Gate", "lat": 27.1895, "lon": 75.9541, "desc": "Campus Entrance Sentry Checkpoint"}, {"name": "\ud83d\udcf9 Security Post 2 - Ground Floor Corridor", "lat": 27.1899, "lon": 75.9545, "desc": "Hostel Surveillance Checkpoint"}, {"name": "\ud83d\udcf9 Security Post 3 - Mess & Dining Checkpoint", "lat": 27.1892, "lon": 75.9539, "desc": "Hostel Dining Sentry Post"}];
+
+        // Initialize Map centered on NIMS University Campus
+        const map = L.map('map', {
+            center: [27.189814, 75.954264],
+            zoom: 16,
+            zoomControl: false
+        });
+
+        // Add Zoom Control at bottom right
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // Tile Layers
+        const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri World Imagery',
+            maxZoom: 19
+        }).addTo(map);
+
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        });
+
+        function setBaseLayer(type) {
+            if (type === 'satellite') {
+                map.removeLayer(streetLayer);
+                map.addLayer(satLayer);
+                document.getElementById('btn-sat').classList.add('active');
+                document.getElementById('btn-street').classList.remove('active');
+            } else {
+                map.removeLayer(satLayer);
+                map.addLayer(streetLayer);
+                document.getElementById('btn-street').classList.add('active');
+                document.getElementById('btn-sat').classList.remove('active');
+            }
+        }
+
+        // Add Campus Security Landmarks
+        const landmarkLayer = L.layerGroup().addTo(map);
+        landmarkData.forEach(lm => {
+            const marker = L.marker([lm.lat, lm.lon], {
+                icon: L.divIcon({
+                    className: 'landmark-icon',
+                    html: `<div style="background:#10b981; color:#fff; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 10px rgba(0,0,0,0.7);"><i class="fa-solid fa-shield-halved" style="font-size:14px;"></i></div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                })
+            }).bindPopup(`
+                <div style="font-size: 13px; line-height: 1.5;">
+                    <b style="color: #34d399;">${lm.name}</b><hr style="border-color: #334155; margin: 4px 0;">
+                    <b>Landmark Info:</b> ${lm.desc}<br>
+                    <b>GPS:</b> ${lm.lat.toFixed(6)}, ${lm.lon.toFixed(6)}
+                </div>
+            `);
+            landmarkLayer.addLayer(marker);
+        });
+
+        // Layer for Wi-Fi Nodes
+        const wifiLayer = L.layerGroup().addTo(map);
+
+        let activeBand = 'ALL';
+        let activeChannel = 'ALL';
+        let active5GSub = null;
+        let vulnOnly = false;
+
+        function renderNodes() {
+            wifiLayer.clearLayers();
+            let count = 0;
+
+            wifiData.forEach(node => {
+                // Band filter
+                if (activeBand !== 'ALL' && node.band !== activeBand) return;
+
+                // Channel filter
+                if (activeChannel !== 'ALL' && node.channel !== activeChannel) return;
+
+                // 5G Sub-band filter
+                if (active5GSub) {
+                    if (node.band !== '5 GHz') return;
+                    if (active5GSub === 'UNII1' && ![36, 40, 44, 48].includes(node.channel)) return;
+                    if (active5GSub === 'UNII2' && ![52, 56, 60, 64].includes(node.channel)) return;
+                    if (active5GSub === 'UNII3' && ![100, 104, 149, 153, 157, 161].includes(node.channel)) return;
+                }
+
+                // Vulnerable only filter
+                if (vulnOnly && node.risk !== 'VULNERABLE') return;
+
+                // Create glowing marker
+                const circle = L.circleMarker([node.lat, node.lon], {
+                    radius: 8,
+                    fillColor: node.color,
+                    color: '#ffffff',
+                    weight: 1.5,
+                    opacity: 0.95,
+                    fillOpacity: 0.85
+                });
+
+                circle.bindPopup(`
+                    <div style="font-size: 12px; line-height: 1.6; min-width: 230px;">
+                        <b style="font-size: 14px; color: #38bdf8;"><i class="fa-solid fa-wifi"></i> ${node.ssid}</b>
+                        <hr style="border-color: #334155; margin: 5px 0;">
+                        <b>BSSID (MAC):</b> <code style="color: #facc15;">${node.bssid}</code><br>
+                        <b>Frequency:</b> <b>${node.band}</b> (${node.frequency} MHz)<br>
+                        <b>Channel:</b> <b style="color: #60a5fa;">Channel ${node.channel}</b><br>
+                        <b>Signal (RSSI):</b> <span style="color: #a7f3d0;">${node.rssi} dBm</span><br>
+                        <b>Vendor:</b> ${node.vendor}<br>
+                        <b>Security:</b> ${node.security}<br>
+                        <b>Threat Status:</b> <b style="color: ${node.color};">${node.risk}</b><br>
+                        <b>GPS:</b> ${node.lat.toFixed(6)}, ${node.lon.toFixed(6)}
+                    </div>
+                `);
+
+                wifiLayer.addLayer(circle);
+                count++;
+            });
+
+            document.getElementById('visible-count').innerText = `Visible: ${count} APs`;
+        }
+
+        // Filter Actions
+        function filterByBand(band) {
+            activeBand = band;
+            activeChannel = 'ALL';
+            active5GSub = null;
+            updateChannelPills();
+            document.querySelectorAll('.filter-container .filter-btn').forEach(btn => {
+                if (btn.id === 'btn-all' && band === 'ALL') btn.classList.add('active');
+                else if (btn.id === 'btn-24' && band === '2.4 GHz') btn.classList.add('active');
+                else if (btn.id === 'btn-5g' && band === '5 GHz') btn.classList.add('active');
+                else if (['btn-all', 'btn-24', 'btn-5g'].includes(btn.id)) btn.classList.remove('active');
+            });
+            renderNodes();
+        }
+
+        function filterByChannel(ch) {
+            activeChannel = ch;
+            active5GSub = null;
+            if (ch !== 'ALL') {
+                activeBand = (ch <= 14) ? '2.4 GHz' : '5 GHz';
+            }
+            updateChannelPills();
+            renderNodes();
+        }
+
+        function filterBy5GSub(sub) {
+            active5GSub = sub;
+            activeChannel = 'ALL';
+            activeBand = '5 GHz';
+            updateChannelPills();
+            renderNodes();
+        }
+
+        function toggleVulnerableOnly() {
+            vulnOnly = !vulnOnly;
+            const btn = document.getElementById('btn-vuln');
+            if (vulnOnly) btn.classList.add('active');
+            else btn.classList.remove('active');
+            renderNodes();
+        }
+
+        function updateChannelPills() {
+            document.querySelectorAll('.ch-pill').forEach(pill => {
+                pill.classList.remove('active');
+                const text = pill.innerText.trim();
+                if (activeChannel === 'ALL' && !active5GSub && text === 'ALL CH') pill.classList.add('active');
+                else if (text === `Ch ${activeChannel}`) pill.classList.add('active');
+                else if (text.includes('Ch 6') && activeChannel === 6) pill.classList.add('active');
+                else if (active5GSub === 'UNII1' && text.includes('36-48')) pill.classList.add('active');
+                else if (active5GSub === 'UNII2' && text.includes('52-64')) pill.classList.add('active');
+                else if (active5GSub === 'UNII3' && text.includes('149-161')) pill.classList.add('active');
+            });
+        }
+
+        function jumpTo(dest) {
+            if (dest === 'NIMS') {
+                map.setView([27.189814, 75.954264], 16);
+            } else {
+                map.setView([26.912434, 75.787271], 14);
+            }
+        }
+
+        // Initial Render
+        renderNodes();
+    </script>
+</body>
+</html>

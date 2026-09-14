@@ -1,0 +1,1007 @@
+[
+  {
+    "alert_id": "ALT-CRIT-01",
+    "record_id": "VERIF-PT-001",
+    "prediction_id": "PRED-VERIF-PT-001",
+    "risk_score": 0.9514,
+    "severity": "CRITICAL",
+    "reason": "Active Clinical Evaluation patient with top factor ldl_cholesterol (Value: 165.0)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ldl_cholesterol (165.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T20:11:17.281010"
+  },
+  {
+    "alert_id": "ALT-CRIT-02",
+    "record_id": "DEMO-HIGH-03",
+    "prediction_id": "PRED-DEMO-HIGH-03",
+    "risk_score": 0.951,
+    "severity": "CRITICAL",
+    "reason": "Active Clinical Evaluation patient with top factor ldl_cholesterol (Value: 165.0)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ldl_cholesterol (165.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T04:30:49.708375"
+  },
+  {
+    "alert_id": "ALT-CRIT-03",
+    "record_id": "DEMO-CRIT-04",
+    "prediction_id": "PRED-DEMO-CRIT-04",
+    "risk_score": 0.9507,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Research Cohort patient with top factor ldl_cholesterol (Value: 198.0)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ldl_cholesterol (198.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T04:30:06.365615"
+  },
+  {
+    "alert_id": "ALT-CRIT-04",
+    "record_id": "R-863952",
+    "prediction_id": "PRED-R-863952",
+    "risk_score": 0.9506,
+    "severity": "CRITICAL",
+    "reason": "Active Clinical Evaluation patient with top factor fasting_glucose (Value: 126.0)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "fasting_glucose (126.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:45:11.551019"
+  },
+  {
+    "alert_id": "ALT-CRIT-05",
+    "record_id": "R-270947",
+    "prediction_id": "PRED-R-270947",
+    "risk_score": 0.9502,
+    "severity": "CRITICAL",
+    "reason": "Active Clinical Evaluation patient with top factor fasting_glucose (Value: 126.0)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "fasting_glucose (126.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-11T04:36:30.828702"
+  },
+  {
+    "alert_id": "ALT-CRIT-06",
+    "record_id": "R-GEN-2019",
+    "prediction_id": "PRED-R-GEN-2019",
+    "risk_score": 0.9495,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor hs_crp (Value: N/A)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hs_crp (N/A) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-07",
+    "record_id": "R-CAD-1004",
+    "prediction_id": "PRED-R-CAD-1004",
+    "risk_score": 0.9494,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 154.4)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ldl_cholesterol (154.4) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-08",
+    "record_id": "DEMO-MOD-02",
+    "prediction_id": "PRED-DEMO-MOD-02",
+    "risk_score": 0.9494,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Research Cohort patient with top factor ldl_cholesterol (Value: 138.0)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ldl_cholesterol (138.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T04:29:49.441122"
+  },
+  {
+    "alert_id": "ALT-CRIT-09",
+    "record_id": "R-GEN-2004",
+    "prediction_id": "PRED-R-GEN-2004",
+    "risk_score": 0.9492,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor hs_crp (Value: N/A)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hs_crp (N/A) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-10",
+    "record_id": "R-GEN-2003",
+    "prediction_id": "PRED-R-GEN-2003",
+    "risk_score": 0.9487,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor hs_crp (Value: N/A)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hs_crp (N/A) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-11",
+    "record_id": "R-CAD-1002",
+    "prediction_id": "PRED-R-CAD-1002",
+    "risk_score": 0.9487,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor fasting_glucose (Value: 137.3)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "fasting_glucose (137.3) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-12",
+    "record_id": "R-GEN-2000",
+    "prediction_id": "PRED-R-GEN-2000",
+    "risk_score": 0.9485,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor hs_crp (Value: N/A)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hs_crp (N/A) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-13",
+    "record_id": "R-GEN-2012",
+    "prediction_id": "PRED-R-GEN-2012",
+    "risk_score": 0.9484,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor hs_crp (Value: N/A)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hs_crp (N/A) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-14",
+    "record_id": "R-CAD-1007",
+    "prediction_id": "PRED-R-CAD-1007",
+    "risk_score": 0.9482,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 155.4)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ldl_cholesterol (155.4) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-15",
+    "record_id": "R-GEN-2025",
+    "prediction_id": "PRED-R-GEN-2025",
+    "risk_score": 0.9481,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor hs_crp (Value: N/A)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hs_crp (N/A) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-16",
+    "record_id": "R-GEN-2002",
+    "prediction_id": "PRED-R-GEN-2002",
+    "risk_score": 0.9481,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor hs_crp (Value: N/A)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hs_crp (N/A) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-17",
+    "record_id": "R-CAD-1000",
+    "prediction_id": "PRED-R-CAD-1000",
+    "risk_score": 0.948,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 206.6)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ldl_cholesterol (206.6) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-18",
+    "record_id": "R-GEN-2001",
+    "prediction_id": "PRED-R-GEN-2001",
+    "risk_score": 0.9477,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor hs_crp (Value: N/A)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hs_crp (N/A) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-19",
+    "record_id": "R-CAD-1042",
+    "prediction_id": "PRED-R-CAD-1042",
+    "risk_score": 0.9469,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Research Cohort patient with top factor systolic_bp (Value: 153.3)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "systolic_bp (153.3) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T20:19:48.868246"
+  },
+  {
+    "alert_id": "ALT-CRIT-20",
+    "record_id": "R-CAD-1001",
+    "prediction_id": "PRED-R-CAD-1001",
+    "risk_score": 0.9467,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 189.5)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ldl_cholesterol (189.5) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-21",
+    "record_id": "R-CAD-1003",
+    "prediction_id": "PRED-R-CAD-1003",
+    "risk_score": 0.9358,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 153.0)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ldl_cholesterol (153.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-22",
+    "record_id": "R-GEN-2022",
+    "prediction_id": "PRED-R-GEN-2022",
+    "risk_score": 0.9338,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor age (Value: 39.2)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "age (39.2) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-23",
+    "record_id": "R-CAD-1008",
+    "prediction_id": "PRED-R-CAD-1008",
+    "risk_score": 0.9313,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor hdl_cholesterol (Value: 31.7)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hdl_cholesterol (31.7) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-24",
+    "record_id": "R-CAD-1009",
+    "prediction_id": "PRED-R-CAD-1009",
+    "risk_score": 0.9306,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor hs_crp (Value: 0.8)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "hs_crp (0.8) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-25",
+    "record_id": "R-GEN-2008",
+    "prediction_id": "PRED-R-GEN-2008",
+    "risk_score": 0.9246,
+    "severity": "CRITICAL",
+    "reason": "Oncology Genomic Cohort (NCBI Enriched) patient with top factor age (Value: 35.8)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "age (35.8) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:51.596170"
+  },
+  {
+    "alert_id": "ALT-CRIT-26",
+    "record_id": "R-CAD-1005",
+    "prediction_id": "PRED-R-CAD-1005",
+    "risk_score": 0.9033,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor fasting_glucose (Value: 136.0)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "fasting_glucose (136.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-27",
+    "record_id": "MM-ELEANO-7055",
+    "prediction_id": "PRED-MM-ELEANO-7055",
+    "risk_score": 0.8719,
+    "severity": "CRITICAL",
+    "reason": "Cutaneous-Genomics (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 68.99 deg (Melanin: 5.86))",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 68.99 deg (Melanin: 5.86)) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T22:07:49.139289"
+  },
+  {
+    "alert_id": "ALT-CRIT-28",
+    "record_id": "MM-ELEANO-1D74",
+    "prediction_id": "PRED-MM-ELEANO-1D74",
+    "risk_score": 0.8719,
+    "severity": "CRITICAL",
+    "reason": "Cutaneous-Genomics (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 59.84 deg (Melanin: 9.71))",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 59.84 deg (Melanin: 9.71)) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T22:20:20.834151"
+  },
+  {
+    "alert_id": "ALT-CRIT-29",
+    "record_id": "MM-ELEANO-F6DC",
+    "prediction_id": "PRED-MM-ELEANO-F6DC",
+    "risk_score": 0.8712,
+    "severity": "CRITICAL",
+    "reason": "Cutaneous-Genomics (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 68.99 deg (Melanin: 5.85))",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 68.99 deg (Melanin: 5.85)) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T22:01:22.364744"
+  },
+  {
+    "alert_id": "ALT-CRIT-30",
+    "record_id": "MM-ELEANO-178B",
+    "prediction_id": "PRED-MM-ELEANO-178B",
+    "risk_score": 0.8712,
+    "severity": "CRITICAL",
+    "reason": "Cutaneous-Genomics (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 69.0 deg (Melanin: 5.86))",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 69.0 deg (Melanin: 5.86)) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T22:11:01.272540"
+  },
+  {
+    "alert_id": "ALT-CRIT-31",
+    "record_id": "MM-SOPHIA-04E4",
+    "prediction_id": "PRED-MM-SOPHIA-04E4",
+    "risk_score": 0.8659,
+    "severity": "CRITICAL",
+    "reason": "Cutaneous-Genomics (Type II) patient with top factor Cutaneous Phototype (Type II) (Value: ITA: 52.0 deg (Melanin: 14.2))",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type II) (ITA: 52.0 deg (Melanin: 14.2)) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:57:21.612926"
+  },
+  {
+    "alert_id": "ALT-CRIT-32",
+    "record_id": "R-CAD-1014",
+    "prediction_id": "PRED-R-CAD-1014",
+    "risk_score": 0.8603,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor age (Value: 35.3)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "age (35.3) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-CRIT-33",
+    "record_id": "MM-MAMTA--A340",
+    "prediction_id": "PRED-MM-MAMTA--A340",
+    "risk_score": 0.8546,
+    "severity": "CRITICAL",
+    "reason": "Cutaneous-Genomics (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 59.84 deg (Melanin: 9.71))",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 59.84 deg (Melanin: 9.71)) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-11T08:21:23.769385"
+  },
+  {
+    "alert_id": "ALT-CRIT-34",
+    "record_id": "MM-DR.-PR-7BB6",
+    "prediction_id": "PRED-MM-DR.-PR-7BB6",
+    "risk_score": 0.8538,
+    "severity": "CRITICAL",
+    "reason": "Cutaneous-Genomics (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 59.84 deg (Melanin: 9.71))",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 59.84 deg (Melanin: 9.71)) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-11T06:20:42.237851"
+  },
+  {
+    "alert_id": "ALT-CRIT-35",
+    "record_id": "MM-POOJA-6032",
+    "prediction_id": "PRED-MM-POOJA-6032",
+    "risk_score": 0.8499,
+    "severity": "CRITICAL",
+    "reason": "Cutaneous-Genomics (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 59.84 deg (Melanin: 9.71))",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 59.84 deg (Melanin: 9.71)) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-11T07:44:23.183664"
+  },
+  {
+    "alert_id": "ALT-CRIT-36",
+    "record_id": "R-CAD-1006",
+    "prediction_id": "PRED-R-CAD-1006",
+    "risk_score": 0.8094,
+    "severity": "CRITICAL",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor egfr (Value: 46.3)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "egfr (46.3) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-HIGH-37",
+    "record_id": "MM-TCGA-M-772B",
+    "prediction_id": "PRED-MM-TCGA-M-772B",
+    "risk_score": 0.763,
+    "severity": "HIGH",
+    "reason": "Cutaneous-Dermal (Type II) patient with top factor Cutaneous Phototype (Type II) (Value: ITA: 48.0\u00b0 | Melanin: 15.0)",
+    "recommendation": "Specialist referral and comprehensive biomarker panel.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type II) (ITA: 48.0\u00b0 | Melanin: 15.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-12T23:50:03.995092"
+  },
+  {
+    "alert_id": "ALT-HIGH-38",
+    "record_id": "MM-TCGA-D-A9B4",
+    "prediction_id": "PRED-MM-TCGA-D-A9B4",
+    "risk_score": 0.763,
+    "severity": "HIGH",
+    "reason": "Cutaneous-Dermal (Type II) patient with top factor Cutaneous Phototype (Type II) (Value: ITA: 48.0\u00b0 | Melanin: 15.0)",
+    "recommendation": "Specialist referral and comprehensive biomarker panel.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type II) (ITA: 48.0\u00b0 | Melanin: 15.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-12T23:56:18.847574"
+  },
+  {
+    "alert_id": "ALT-HIGH-39",
+    "record_id": "MM-TCGA-B-F209",
+    "prediction_id": "PRED-MM-TCGA-B-F209",
+    "risk_score": 0.763,
+    "severity": "HIGH",
+    "reason": "Cutaneous-Dermal (Type II) patient with top factor Cutaneous Phototype (Type II) (Value: ITA: 48.0\u00b0 | Melanin: 15.0)",
+    "recommendation": "Specialist referral and comprehensive biomarker panel.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type II) (ITA: 48.0\u00b0 | Melanin: 15.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-12T23:53:24.160475"
+  },
+  {
+    "alert_id": "ALT-HIGH-40",
+    "record_id": "MM-TCGA-D-D9F6",
+    "prediction_id": "PRED-MM-TCGA-D-D9F6",
+    "risk_score": 0.6107,
+    "severity": "HIGH",
+    "reason": "Cutaneous-Dermal (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 62.0\u00b0 | Melanin: 11.2)",
+    "recommendation": "Specialist referral and comprehensive biomarker panel.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 62.0\u00b0 | Melanin: 11.2) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-13T00:19:17.784531"
+  },
+  {
+    "alert_id": "ALT-HIGH-41",
+    "record_id": "MM-TCGA-D-759A",
+    "prediction_id": "PRED-MM-TCGA-D-759A",
+    "risk_score": 0.6107,
+    "severity": "HIGH",
+    "reason": "Cutaneous-Dermal (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 62.0\u00b0 | Melanin: 11.2)",
+    "recommendation": "Specialist referral and comprehensive biomarker panel.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 62.0\u00b0 | Melanin: 11.2) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-13T00:19:18.479097"
+  },
+  {
+    "alert_id": "ALT-MEDI-42",
+    "record_id": "MM-TCGA-D-640E",
+    "prediction_id": "PRED-MM-TCGA-D-640E",
+    "risk_score": 0.5253,
+    "severity": "MEDIUM",
+    "reason": "Cutaneous-Dermal (Type I) patient with top factor Cutaneous Phototype (Type I) (Value: ITA: 59.8\u00b0 | Melanin: 9.7)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type I) (ITA: 59.8\u00b0 | Melanin: 9.7) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-13T01:14:18.096185"
+  },
+  {
+    "alert_id": "ALT-MEDI-43",
+    "record_id": "R-CAD-1072",
+    "prediction_id": "PRED-R-CAD-1072",
+    "risk_score": 0.4651,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor fasting_glucose (Value: 74.9)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "fasting_glucose (74.9) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-MEDI-44",
+    "record_id": "R-CAD-1010",
+    "prediction_id": "PRED-R-CAD-1010",
+    "risk_score": 0.4216,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor egfr (Value: 87.8)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "egfr (87.8) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-MEDI-45",
+    "record_id": "R-CAD-1062",
+    "prediction_id": "PRED-R-CAD-1062",
+    "risk_score": 0.4024,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 77.2)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "ldl_cholesterol (77.2) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-MEDI-46",
+    "record_id": "R-CAD-1041",
+    "prediction_id": "PRED-R-CAD-1041",
+    "risk_score": 0.394,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor fasting_glucose (Value: 84.0)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "fasting_glucose (84.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-MEDI-47",
+    "record_id": "R-CAD-1033",
+    "prediction_id": "PRED-R-CAD-1033",
+    "risk_score": 0.3809,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor egfr (Value: 97.7)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "egfr (97.7) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-MEDI-48",
+    "record_id": "R-CAD-1013",
+    "prediction_id": "PRED-R-CAD-1013",
+    "risk_score": 0.3666,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 70.6)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "ldl_cholesterol (70.6) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-MEDI-49",
+    "record_id": "R-CAD-1015",
+    "prediction_id": "PRED-R-CAD-1015",
+    "risk_score": 0.3609,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 60.4)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "ldl_cholesterol (60.4) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-MEDI-50",
+    "record_id": "R-CAD-1024",
+    "prediction_id": "PRED-R-CAD-1024",
+    "risk_score": 0.3565,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 55.3)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "ldl_cholesterol (55.3) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-MEDI-51",
+    "record_id": "R-CAD-1028",
+    "prediction_id": "PRED-R-CAD-1028",
+    "risk_score": 0.3519,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Cohort (n=600) patient with top factor ldl_cholesterol (Value: 58.5)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "ldl_cholesterol (58.5) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-10T21:39:16.957680"
+  },
+  {
+    "alert_id": "ALT-MEDI-52",
+    "record_id": "DEMO-LOW-01",
+    "prediction_id": "PRED-DEMO-LOW-01",
+    "risk_score": 0.3516,
+    "severity": "MEDIUM",
+    "reason": "Cardiometabolic Research Cohort patient with top factor ldl_cholesterol (Value: 85.0)",
+    "recommendation": "Lifestyle modification and 3-month follow-up.",
+    "contributing_factors": [
+      "ldl_cholesterol (85.0) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "REVIEWED",
+    "created_at": "2026-09-14T04:29:55.318534"
+  },
+  {
+    "alert_id": "ALT-LOW-53",
+    "record_id": "MM-ISHIT--0B53",
+    "prediction_id": "PRED-MM-ISHIT--0B53",
+    "risk_score": 0.2984,
+    "severity": "LOW",
+    "reason": "Cutaneous-Dermal (Type II) patient with top factor Cutaneous Phototype (Type II) (Value: ITA: 49.0\u00b0 | Melanin: 34.4)",
+    "recommendation": "Annual wellness surveillance and routine preventive care.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type II) (ITA: 49.0\u00b0 | Melanin: 34.4) - Primary discriminator"
+    ],
+    "acknowledged": true,
+    "status": "CLOSED",
+    "created_at": "2026-09-13T00:21:21.153462"
+  },
+  {
+    "alert_id": "ALT-LOW-54",
+    "record_id": "MM-DYSPLA-3F34",
+    "prediction_id": "PRED-MM-DYSPLA-3F34",
+    "risk_score": 0.253,
+    "severity": "LOW",
+    "reason": "Cutaneous-Dermal (Type II) patient with top factor Cutaneous Phototype (Type II) (Value: ITA: 46.5\u00b0 | Melanin: 16.8)",
+    "recommendation": "Annual wellness surveillance and routine preventive care.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type II) (ITA: 46.5\u00b0 | Melanin: 16.8) - Primary discriminator"
+    ],
+    "acknowledged": true,
+    "status": "CLOSED",
+    "created_at": "2026-09-12T23:50:03.981716"
+  },
+  {
+    "alert_id": "ALT-LOW-55",
+    "record_id": "MM-CLAIRE-C6FF",
+    "prediction_id": "PRED-MM-CLAIRE-C6FF",
+    "risk_score": 0.253,
+    "severity": "LOW",
+    "reason": "Cutaneous-Dermal (Type II) patient with top factor Cutaneous Phototype (Type II) (Value: ITA: 46.5\u00b0 | Melanin: 16.8)",
+    "recommendation": "Annual wellness surveillance and routine preventive care.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type II) (ITA: 46.5\u00b0 | Melanin: 16.8) - Primary discriminator"
+    ],
+    "acknowledged": true,
+    "status": "CLOSED",
+    "created_at": "2026-09-13T00:19:15.978330"
+  },
+  {
+    "alert_id": "ALT-LOW-56",
+    "record_id": "MM-CLAIRE-389B",
+    "prediction_id": "PRED-MM-CLAIRE-389B",
+    "risk_score": 0.253,
+    "severity": "LOW",
+    "reason": "Cutaneous-Dermal (Type II) patient with top factor Cutaneous Phototype (Type II) (Value: ITA: 46.5\u00b0 | Melanin: 16.8)",
+    "recommendation": "Annual wellness surveillance and routine preventive care.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type II) (ITA: 46.5\u00b0 | Melanin: 16.8) - Primary discriminator"
+    ],
+    "acknowledged": true,
+    "status": "CLOSED",
+    "created_at": "2026-09-13T00:19:14.083326"
+  },
+  {
+    "alert_id": "ALT-LOW-57",
+    "record_id": "MM-SOPHIA-FB08",
+    "prediction_id": "PRED-MM-SOPHIA-FB08",
+    "risk_score": 0.1325,
+    "severity": "LOW",
+    "reason": "Cutaneous-Dermal (Type II) patient with top factor Cutaneous Phototype (Type II) (Value: ITA: 43.6\u00b0 | Melanin: 18.0)",
+    "recommendation": "Annual wellness surveillance and routine preventive care.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type II) (ITA: 43.6\u00b0 | Melanin: 18.0) - Primary discriminator"
+    ],
+    "acknowledged": true,
+    "status": "CLOSED",
+    "created_at": "2026-09-12T23:54:44.769452"
+  },
+  {
+    "alert_id": "ALT-LOW-58",
+    "record_id": "MM-SOPHIA-5507",
+    "prediction_id": "PRED-MM-SOPHIA-5507",
+    "risk_score": 0.0637,
+    "severity": "LOW",
+    "reason": "Cutaneous-Dermal (Type III) patient with top factor Cutaneous Phototype (Type III) (Value: ITA: 36.5\u00b0 | Melanin: 24.0)",
+    "recommendation": "Annual wellness surveillance and routine preventive care.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type III) (ITA: 36.5\u00b0 | Melanin: 24.0) - Primary discriminator"
+    ],
+    "acknowledged": true,
+    "status": "CLOSED",
+    "created_at": "2026-09-12T23:53:24.128639"
+  },
+  {
+    "alert_id": "ALT-LOW-59",
+    "record_id": "MM-SOPHIA-4429",
+    "prediction_id": "PRED-MM-SOPHIA-4429",
+    "risk_score": 0.0637,
+    "severity": "LOW",
+    "reason": "Cutaneous-Dermal (Type III) patient with top factor Cutaneous Phototype (Type III) (Value: ITA: 36.5\u00b0 | Melanin: 24.0)",
+    "recommendation": "Annual wellness surveillance and routine preventive care.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type III) (ITA: 36.5\u00b0 | Melanin: 24.0) - Primary discriminator"
+    ],
+    "acknowledged": true,
+    "status": "CLOSED",
+    "created_at": "2026-09-13T00:19:22.931806"
+  },
+  {
+    "alert_id": "ALT-LOW-60",
+    "record_id": "MM-HEALTH-569E",
+    "prediction_id": "PRED-MM-HEALTH-569E",
+    "risk_score": 0.0637,
+    "severity": "LOW",
+    "reason": "Cutaneous-Dermal (Type III) patient with top factor Cutaneous Phototype (Type III) (Value: ITA: 36.5\u00b0 | Melanin: 24.0)",
+    "recommendation": "Annual wellness surveillance and routine preventive care.",
+    "contributing_factors": [
+      "Cutaneous Phototype (Type III) (ITA: 36.5\u00b0 | Melanin: 24.0) - Primary discriminator"
+    ],
+    "acknowledged": true,
+    "status": "CLOSED",
+    "created_at": "2026-09-12T23:50:03.955436"
+  },
+  {
+    "alert_id": "ALT-CRIT-61",
+    "record_id": "MODEL-HYBRID",
+    "prediction_id": "PRED-MODEL-HYBRID",
+    "risk_score": 0.9,
+    "severity": "CRITICAL",
+    "reason": "AI Model: Hybrid Classical-Quantum Ensemble (Winner) patient with top factor systolic_bp (Value: ROC-AUC 0.9314)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "systolic_bp (ROC-AUC 0.9314) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T00:00:00"
+  },
+  {
+    "alert_id": "ALT-CRIT-62",
+    "record_id": "MODEL-XGBOOST",
+    "prediction_id": "PRED-MODEL-XGBOOST",
+    "risk_score": 0.9,
+    "severity": "CRITICAL",
+    "reason": "AI Model: XGBoost Gradient Boosted Trees patient with top factor systolic_bp (Value: ROC-AUC 0.9314)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "systolic_bp (ROC-AUC 0.9314) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T00:00:00"
+  },
+  {
+    "alert_id": "ALT-CRIT-63",
+    "record_id": "MODEL-VQC",
+    "prediction_id": "PRED-MODEL-VQC",
+    "risk_score": 0.85,
+    "severity": "CRITICAL",
+    "reason": "AI Model: 4-Qubit Variational Quantum Classifier (VQC) patient with top factor systolic_bp_scaled (Value: ROC-AUC 0.82)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "systolic_bp_scaled (ROC-AUC 0.82) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T00:00:00"
+  },
+  {
+    "alert_id": "ALT-CRIT-64",
+    "record_id": "MODEL-RANDOM-FOREST",
+    "prediction_id": "PRED-MODEL-RANDOM-FOREST",
+    "risk_score": 0.88,
+    "severity": "CRITICAL",
+    "reason": "AI Model: Random Forest Bagging Classifier patient with top factor age (Value: ROC-AUC 0.918)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "age (ROC-AUC 0.918) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T00:00:00"
+  },
+  {
+    "alert_id": "ALT-CRIT-65",
+    "record_id": "MODEL-LOGISTIC-REG",
+    "prediction_id": "PRED-MODEL-LOGISTIC-REG",
+    "risk_score": 0.845,
+    "severity": "CRITICAL",
+    "reason": "AI Model: L2 Logistic Regression Baseline patient with top factor systolic_bp (Value: ROC-AUC 0.865)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "systolic_bp (ROC-AUC 0.865) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T00:00:00"
+  },
+  {
+    "alert_id": "ALT-CRIT-66",
+    "record_id": "MODEL-ADABOOST",
+    "prediction_id": "PRED-MODEL-ADABOOST",
+    "risk_score": 0.875,
+    "severity": "CRITICAL",
+    "reason": "AI Model: AdaBoost Adaptive Boosting patient with top factor systolic_bp (Value: ROC-AUC 0.892)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "systolic_bp (ROC-AUC 0.892) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T00:00:00"
+  },
+  {
+    "alert_id": "ALT-CRIT-67",
+    "record_id": "MODEL-DERM-VISION",
+    "prediction_id": "PRED-MODEL-DERM-VISION",
+    "risk_score": 0.892,
+    "severity": "CRITICAL",
+    "reason": "AI Model: Multi-Modal Cutaneous Optical Biopsy Model patient with top factor ita_degrees (Value: ROC-AUC 0.924)",
+    "recommendation": "Immediate oncology/cardiology stat consult and telemetry admission.",
+    "contributing_factors": [
+      "ita_degrees (ROC-AUC 0.924) - Primary discriminator"
+    ],
+    "acknowledged": false,
+    "status": "PENDING",
+    "created_at": "2026-09-14T00:00:00"
+  }
+]
