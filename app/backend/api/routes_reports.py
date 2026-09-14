@@ -3,9 +3,10 @@ Clinical Decision Support Report Generator API Routes
 Compiles structured patient risk assessments, model attributions, alert history, and doctor reviews into printable clinical reports.
 """
 
-from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Response
+from typing import Optional, List, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import json
 import pandas as pd
@@ -14,7 +15,12 @@ from app.backend.database.connection import get_db
 from app.backend.database.models import PatientRecord, PredictionRecord, AlertRecord, DoctorFeedbackRecord, AuditLogRecord
 from app.backend.services.pipeline_service import pipeline_service
 from app.backend.api.routes_prediction import DEMO_PATIENT_CASES
-from app.backend.utils.pdf_generator import generate_clinical_pdf, generate_doctor_clinical_pdf, generate_patient_readable_pdf
+from app.backend.utils.pdf_generator import (
+    generate_clinical_pdf, generate_doctor_clinical_pdf, generate_patient_readable_pdf,
+    generate_qml_cml_patient_report_pdf
+)
+from app.backend.services.pdf_parser_service import extract_text_from_pdf_bytes, parse_patient_report_text
+from app.backend.qml.quantum_simulator_20q import run_quantum_20q_simulation
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -437,3 +443,282 @@ def get_patient_readable_pdf_route(record_id: str, db: Session = Depends(get_db)
             "Content-Disposition": f"attachment; filename=patient_health_summary_{record_id}.pdf"
         }
     )
+
+
+# =========================================================================
+# PATIENT REPORT PDF UPLOADER & DUAL QML/CML (UP TO 20 QUBITS) ENDPOINTS
+# =========================================================================
+
+SAMPLE_PATIENTS_DATA = [
+    {
+        "id": "TCGA-BH-A0B2",
+        "title": "TCGA-BH-A0B2 (Breast Invasive Carcinoma)",
+        "cancer_type": "Breast Invasive Carcinoma (BRCA)",
+        "stage": "Stage IIA",
+        "age": 54,
+        "sex": "Female",
+        "key_mutations": ["BRCA1 c.68_69delAG", "TP53 p.R175H"],
+        "vaf": 42.1,
+        "tmb": 14.8,
+        "text_content": (
+            "NCI GENOMIC DATA COMMONS - TCGA MOLECULAR PATHOLOGY REPORT\n"
+            "Patient Identifier: TCGA-BH-A0B2\n"
+            "Demographics: Age 54, Female. Primary Tumor Site: Breast Invasive Carcinoma (BRCA)\n"
+            "Pathological TNM Stage: Stage IIA (T2N0M0). Histologic Subtype: Infiltrating Ductal Carcinoma\n"
+            "Targeted NGS Panel Findings:\n"
+            "- Gene: BRCA1 | Mutation: c.68_69delAG (p.Glu23Valfs*17) | Pathogenicity: Pathogenic (ClinVar VCV000017659) | VAF: 42.1%\n"
+            "- Gene: TP53 | Mutation: c.524G>A (p.R175H) | Pathogenicity: Pathogenic (ClinVar VCV000012374) | VAF: 39.8%\n"
+            "Tumor Mutational Burden (TMB): 14.8 mut/Mb (High). Microsatellite Status: Stable (MSS).\n"
+            "Clinical Laboratory Values: SBP 136 mmHg, Glucose 124 mg/dL, hs-CRP 3.6 mg/L, Total Cholesterol 228 mg/dL.\n"
+            "Targeted Therapy Implications: Homologous recombination DNA repair deficiency indicates potential sensitivity to PARP inhibition (Olaparib)."
+        )
+    },
+    {
+        "id": "TCGA-44-3918",
+        "title": "TCGA-44-3918 (Lung Adenocarcinoma)",
+        "cancer_type": "Lung Adenocarcinoma (LUAD)",
+        "stage": "Stage IB",
+        "age": 62,
+        "sex": "Male",
+        "key_mutations": ["EGFR p.L858R", "KRAS p.G12C"],
+        "vaf": 46.5,
+        "tmb": 18.2,
+        "text_content": (
+            "NCI GDC CLINICAL GENOMICS DOSSIER - TCGA-LUAD\n"
+            "Patient Identifier: TCGA-44-3918\n"
+            "Demographics: Age 62, Male. Primary Tumor Site: Lung Adenocarcinoma (LUAD)\n"
+            "Clinical Stage: Stage IB (T2aN0M0)\n"
+            "Genomic Alterations:\n"
+            "- Gene: EGFR | Exon 21 Substitution: c.2573T>G (p.L858R) | VAF: 46.5% | Pathogenicity: Pathogenic\n"
+            "- Gene: KRAS | Codon 12 Activating: c.34G>T (p.G12C) | VAF: 37.2%\n"
+            "TMB: 18.2 mut/Mb. PD-L1 TPS: 45%.\n"
+            "Clinical Labs: SBP 145 mmHg, Glucose 132 mg/dL, hs-CRP 4.2 mg/L.\n"
+            "Therapeutic Strategy: Third-generation EGFR TKI (Osimertinib) or Sotorasib evaluation."
+        )
+    },
+    {
+        "id": "TCGA-AA-3666",
+        "title": "TCGA-AA-3666 (Colon Adenocarcinoma)",
+        "cancer_type": "Colon Adenocarcinoma (COAD)",
+        "stage": "Stage I",
+        "age": 68,
+        "sex": "Male",
+        "key_mutations": ["APC p.R1450*", "KRAS p.G12D"],
+        "vaf": 48.0,
+        "tmb": 11.5,
+        "text_content": (
+            "TCGA COAD MOLECULAR ONCOLOGY REPORT\n"
+            "Patient ID: TCGA-AA-3666\n"
+            "Demographics: Age 68, Male. Diagnosis: Colon Adenocarcinoma (COAD)\n"
+            "Clinical Stage: Stage I (T2N0M0)\n"
+            "Molecular Profile:\n"
+            "- Gene: APC | Truncating Nonsense: c.4348C>T (p.R1450*) | VAF: 48.0%\n"
+            "- Gene: KRAS | Activating Missense: c.35G>A (p.G12D) | VAF: 41.5%\n"
+            "TMB: 11.5 mut/Mb. MSI-H / dMMR Screen: Negative.\n"
+            "Clinical Labs: SBP 140 mmHg, Fasting Glucose 138 mg/dL, hs-CRP 3.1 mg/L."
+        )
+    },
+    {
+        "id": "TCGA-D1-A17D",
+        "title": "TCGA-D1-A17D (Skin Cutaneous Melanoma)",
+        "cancer_type": "Skin Cutaneous Melanoma (SKCM)",
+        "stage": "Stage IIB",
+        "age": 49,
+        "sex": "Female",
+        "key_mutations": ["BRAF p.V600E", "CDKN2A p.R80*"],
+        "vaf": 51.2,
+        "tmb": 24.6,
+        "text_content": (
+            "DERMATOLOGICAL ONCOLOGY & GENOMICS EVALUATION - TCGA-SKCM\n"
+            "Patient ID: TCGA-D1-A17D\n"
+            "Demographics: Age 49, Female. Fitzpatrick Phototype: Type II (Fair, burns easily)\n"
+            "Diagnosis: Skin Cutaneous Melanoma (SKCM). Stage: Stage IIB (Breslow Depth 2.8mm)\n"
+            "Genomic Sequencing Results:\n"
+            "- Gene: BRAF | Hotspot Mutation: c.1799T>A (p.V600E) | VAF: 51.2%\n"
+            "- Gene: CDKN2A | Truncation: c.238C>T (p.R80*) | VAF: 44.8%\n"
+            "- MC1R Polymorphism: R151C Carrier (High cutaneous pheomelanin ratio)\n"
+            "Tumor Mutational Burden (TMB): 24.6 mut/Mb (Extreme UV Signature).\n"
+            "Targeted Plan: Combined BRAF + MEK inhibition (Dabrafenib + Trametinib)."
+        )
+    },
+    {
+        "id": "TCGA-09-2056",
+        "title": "TCGA-09-2056 (Ovarian Serous Carcinoma)",
+        "cancer_type": "Ovarian Serous Cystadenocarcinoma (OV)",
+        "stage": "Stage IIIC",
+        "age": 59,
+        "sex": "Female",
+        "key_mutations": ["TP53 p.R273H", "BRCA2 c.6174delT"],
+        "vaf": 45.8,
+        "tmb": 16.9,
+        "text_content": (
+            "GYNECOLOGIC ONCOLOGY MULTI-OMICS DOSSIER - TCGA-OV\n"
+            "Patient ID: TCGA-09-2056\n"
+            "Demographics: Age 59, Female. Diagnosis: High-Grade Serous Ovarian Carcinoma (HGSOC)\n"
+            "FIGO Staging: Stage IIIC (Peritoneal metastasis)\n"
+            "Mutational Panel:\n"
+            "- Gene: TP53 | Contact Mutation: c.818G>A (p.R273H) | VAF: 45.8%\n"
+            "- Gene: BRCA2 | Ashkenazi Founder Mutation: c.6174delT | VAF: 39.4%\n"
+            "TMB: 16.9 mut/Mb. HRD Genomic Scar Score: Positive (Score 58).\n"
+            "Clinical Labs: SBP 132 mmHg, Glucose 118 mg/dL, hs-CRP 4.8 mg/L.\n"
+            "Clinical Plan: Platinum-based chemotherapy followed by Niraparib/Olaparib maintenance."
+        )
+    }
+]
+
+@router.get("/qml-cml/sample-patients")
+def get_sample_patients_list():
+    """Returns pre-loaded sample world cancer patient reports for immediate 1-click evaluation."""
+    return SAMPLE_PATIENTS_DATA
+
+
+@router.post("/upload-patient-pdf")
+async def upload_patient_pdf_endpoint(
+    file: Optional[UploadFile] = File(None),
+    sample_id: Optional[str] = Form(None),
+    num_qubits: int = Form(20)
+):
+    """
+    Accepts an uploaded patient report PDF file or sample patient ID.
+    Parses clinical, genomic, and laboratory biomarkers,
+    maps them to up to 20 qubits, runs dual CML and 20-Qubit QML models,
+    and returns comprehensive results ready for visualization and PDF generation.
+    """
+    num_qubits = max(2, min(20, int(num_qubits)))
+    filename = "patient_report.pdf"
+    raw_text = ""
+
+    if file and file.filename:
+        filename = file.filename
+        content_bytes = await file.read()
+        if filename.lower().endswith(".pdf"):
+            raw_text = extract_text_from_pdf_bytes(content_bytes)
+        else:
+            try:
+                raw_text = content_bytes.decode("utf-8", errors="ignore")
+            except Exception:
+                raw_text = ""
+
+    if not raw_text.strip():
+        # Check if sample ID provided or fallback
+        match_sample = next((s for s in SAMPLE_PATIENTS_DATA if s["id"] == sample_id), None)
+        if match_sample:
+            filename = f"{match_sample['id']}_clinical_genomic_report.pdf"
+            raw_text = match_sample["text_content"]
+        else:
+            sample_default = SAMPLE_PATIENTS_DATA[0]
+            filename = f"{sample_default['id']}_clinical_genomic_report.pdf"
+            raw_text = sample_default["text_content"]
+
+    # 1. Parse text using semantic parser
+    parsed_report = parse_patient_report_text(raw_text, filename=filename)
+
+    # 2. Run 20-Qubit Scalable Quantum Simulation & Dual CML Engine
+    sim_result = run_quantum_20q_simulation(
+        features_20=parsed_report["features_20q"],
+        num_qubits=num_qubits
+    )
+
+    # 3. Assemble response payload
+    response_payload = {
+        "success": True,
+        "source_filename": filename,
+        "patient_demographics": {
+            "patient_id": parsed_report["patient_id"],
+            "age": parsed_report["age"],
+            "sex": parsed_report["sex"],
+            "diagnosis": parsed_report["diagnosis"],
+            "stage": parsed_report["stage"],
+            "vaf_pct": parsed_report["vaf_pct"],
+            "tmb_score": parsed_report["tmb_score"]
+        },
+        "detected_mutations": parsed_report["detected_mutations"],
+        "clinical_labs": parsed_report["clinical_labs"],
+        "features_20q": parsed_report["features_20q"],
+        "cml_metrics": {
+            "classical_risk_score": sim_result["classical_risk_score"],
+            "xgboost_risk": sim_result["cml_breakdown"]["xgboost_risk"],
+            "adaboost_risk": sim_result["cml_breakdown"]["adaboost_risk"],
+            "random_forest_risk": sim_result["cml_breakdown"]["random_forest_risk"]
+        },
+        "qml_metrics": {
+            "num_qubits": sim_result["num_qubits"],
+            "hilbert_dimension": sim_result["hilbert_dimension"],
+            "circuit_depth": sim_result["circuit_depth"],
+            "entangling_gates_count": sim_result["entangling_gates_count"],
+            "quantum_risk_score": sim_result["quantum_risk_score"],
+            "von_neumann_entropy": sim_result["von_neumann_entropy"],
+            "state_purity": sim_result["state_purity"],
+            "quantum_advantage_metric": sim_result["quantum_advantage_metric"]
+        },
+        "hybrid_metrics": {
+            "hybrid_risk_score": sim_result["hybrid_risk_score"],
+            "epistemic_uncertainty": sim_result["epistemic_uncertainty"],
+            "risk_tier": sim_result["risk_tier"]
+        },
+        "qubit_diagnostics": sim_result["qubit_diagnostics"],
+        "shap_attributions": sim_result["shap_attributions"],
+        "raw_text_snippet": parsed_report["raw_text_snippet"]
+    }
+
+    return response_payload
+
+
+class EvaluateQmlCmlRequest(BaseModel):
+    features_20: List[Dict[str, Any]]
+    num_qubits: int = 20
+
+
+@router.post("/qml-cml/evaluate")
+def evaluate_custom_qml_cml(req: EvaluateQmlCmlRequest):
+    """
+    Re-evaluates patient parameters with user-selected qubit count (2 to 20 Qubits).
+    """
+    num_q = max(2, min(20, req.num_qubits))
+    res = run_quantum_20q_simulation(features_20=req.features_20, num_qubits=num_q)
+    return {
+        "success": True,
+        "cml_metrics": {
+            "classical_risk_score": res["classical_risk_score"],
+            "xgboost_risk": res["cml_breakdown"]["xgboost_risk"],
+            "adaboost_risk": res["cml_breakdown"]["adaboost_risk"],
+            "random_forest_risk": res["cml_breakdown"]["random_forest_risk"]
+        },
+        "qml_metrics": {
+            "num_qubits": res["num_qubits"],
+            "hilbert_dimension": res["hilbert_dimension"],
+            "circuit_depth": res["circuit_depth"],
+            "entangling_gates_count": res["entangling_gates_count"],
+            "quantum_risk_score": res["quantum_risk_score"],
+            "von_neumann_entropy": res["von_neumann_entropy"],
+            "state_purity": res["state_purity"],
+            "quantum_advantage_metric": res["quantum_advantage_metric"]
+        },
+        "hybrid_metrics": {
+            "hybrid_risk_score": res["hybrid_risk_score"],
+            "epistemic_uncertainty": res["epistemic_uncertainty"],
+            "risk_tier": res["risk_tier"]
+        },
+        "qubit_diagnostics": res["qubit_diagnostics"],
+        "shap_attributions": res["shap_attributions"]
+    }
+
+
+@router.post("/qml-cml/generate-pdf")
+def generate_qml_cml_pdf_endpoint(report_data: Dict[str, Any]):
+    """
+    Generates and streams back a publication-grade Dual QML+CML Clinical Dossier PDF
+    with up to 20-Qubit quantum diagnostics.
+    """
+    pdf_bytes = generate_qml_cml_patient_report_pdf(report_data)
+    patient_id = report_data.get("patient_demographics", {}).get("patient_id", "PATIENT")
+    filename = f"qml_cml_dossier_{patient_id}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+

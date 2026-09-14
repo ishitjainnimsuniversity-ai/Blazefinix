@@ -17,6 +17,7 @@ import { VisionDermPage } from './pages/VisionDermPage';
 import { ArchitectureUspPage } from './pages/ArchitectureUspPage';
 import { CancerGenomicsPage } from './pages/CancerGenomicsPage';
 import { UserGuidePage } from './pages/UserGuidePage';
+import { PatientReportUploaderPage } from './pages/PatientReportUploaderPage';
 import { PermanentQrModal } from './components/PermanentQrModal';
 import { fetchAlerts, fetchDemoCases, predictPatientRisk } from './api';
 import { PredictionResult } from './types';
@@ -119,6 +120,7 @@ export const App: React.FC = () => {
               />
             )}
 
+            {currentTab === 'patient_pdf_uploader' && <PatientReportUploaderPage />}
             {currentTab === 'user_guide' && <UserGuidePage />}
             {currentTab === 'architecture_usp' && <ArchitectureUspPage />}
             {currentTab === 'cancer_genomics' && <CancerGenomicsPage />}

@@ -23,6 +23,7 @@ import {
 
 export type NavTab =
   | 'dashboard'
+  | 'patient_pdf_uploader'
   | 'user_guide'
   | 'architecture_usp'
   | 'cancer_genomics'
@@ -58,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems: { id: NavTab; label: string; icon: any; badge?: number }[] = [
     { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
+    { id: 'patient_pdf_uploader', label: 'PDF Uploader (QML/CML 20Q)', icon: FileText },
     { id: 'user_guide', label: 'Model Operating Guide', icon: BookOpen },
     { id: 'cancer_genomics', label: 'Cancer Genomics & APIs', icon: Dna },
     { id: 'architecture_usp', label: 'Hybrid AI/QML Architecture', icon: Layers },
