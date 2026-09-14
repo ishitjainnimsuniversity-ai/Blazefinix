@@ -92,6 +92,10 @@ export const ReportsPage: React.FC = () => {
 
   function handleSelectRecord(id: string) {
     setRecordId(id);
+    loadReportData(id);
+    setTimeout(() => {
+      document.getElementById('dossier-preview')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   }
 
   function handleLoadReport(e: React.FormEvent) {
@@ -390,15 +394,47 @@ export const ReportsPage: React.FC = () => {
                           {p.top_factor || 'N/A'}
                         </td>
                         <td className="p-3 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectRecord(p.record_id);
-                            }}
-                            className="px-2.5 py-1 rounded bg-indigo-600/80 hover:bg-indigo-600 text-white font-semibold text-[11px] transition-colors"
-                          >
-                            View Dossier
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5 font-sans">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectRecord(p.record_id);
+                              }}
+                              className="px-2.5 py-1 rounded bg-indigo-600/80 hover:bg-indigo-600 text-white font-semibold text-[11px] transition-colors whitespace-nowrap"
+                            >
+                              View Dossier
+                            </button>
+                            <a
+                              href={getReportPdfUrl(p.record_id)}
+                              download={`clinical_decision_report_${p.record_id}.pdf`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap"
+                              title="Download Clinical Decision Support PDF"
+                            >
+                              <Download className="w-3 h-3" />
+                              <span>Clinical</span>
+                            </a>
+                            <a
+                              href={getDoctorReportPdfUrl(p.record_id)}
+                              download={`doctor_clinical_report_${p.record_id}.pdf`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap"
+                              title="Download Physician / Doctor Detailed PDF"
+                            >
+                              <Download className="w-3 h-3" />
+                              <span>Doctor</span>
+                            </a>
+                            <a
+                              href={getPatientReportPdfUrl(p.record_id)}
+                              download={`patient_health_summary_${p.record_id}.pdf`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap"
+                              title="Download Patient-Friendly Summary PDF"
+                            >
+                              <Download className="w-3 h-3" />
+                              <span>Patient</span>
+                            </a>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -479,18 +515,52 @@ export const ReportsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 mt-2 text-[11px]">
-                    <span className="text-slate-400">Latency: <strong className="text-slate-200">{met.inference_time_ms} ms</strong></span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSelectRecord(model.model_id);
-                      }}
-                      className="px-2.5 py-1 rounded bg-indigo-600/80 hover:bg-indigo-600 text-white font-semibold transition-colors flex items-center gap-1"
-                    >
-                      <span>View Dossier</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
+                  <div className="flex flex-col gap-2 pt-2 border-t border-slate-800/60 mt-2 text-[11px]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Latency: <strong className="text-slate-200">{met.inference_time_ms} ms</strong></span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectRecord(model.model_id);
+                        }}
+                        className="px-2.5 py-1 rounded bg-indigo-600/80 hover:bg-indigo-600 text-white font-semibold transition-colors flex items-center gap-1"
+                      >
+                        <span>View Dossier</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <a
+                        href={getReportPdfUrl(model.model_id)}
+                        download={`clinical_validation_${model.model_id}.pdf`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 text-center py-1 rounded bg-emerald-600/80 hover:bg-emerald-600 text-white text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors shadow-sm whitespace-nowrap"
+                        title="Download Clinical Decision Support PDF"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Clinical</span>
+                      </a>
+                      <a
+                        href={getDoctorReportPdfUrl(model.model_id)}
+                        download={`doctor_validation_${model.model_id}.pdf`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 text-center py-1 rounded bg-indigo-600/80 hover:bg-indigo-600 text-white text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors shadow-sm whitespace-nowrap"
+                        title="Download Physician/Doctor Clinical Dossier PDF"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Doctor</span>
+                      </a>
+                      <a
+                        href={getPatientReportPdfUrl(model.model_id)}
+                        download={`patient_validation_${model.model_id}.pdf`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 text-center py-1 rounded bg-teal-600/80 hover:bg-teal-600 text-white text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors shadow-sm whitespace-nowrap"
+                        title="Download Plain-Language Summary PDF"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Patient</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
@@ -500,7 +570,7 @@ export const ReportsPage: React.FC = () => {
       )}
 
       {/* Embedded Live Clinical Document Preview (ZERO 404s!) */}
-      <div className="glass-panel-elevated rounded-2xl p-6 border border-slate-800 space-y-4">
+      <div id="dossier-preview" className="glass-panel-elevated rounded-2xl p-6 border border-slate-800 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-800 gap-3">
           <div>
             <div className="flex items-center gap-2">

@@ -35,7 +35,7 @@ export const DataQualityPage: React.FC = () => {
     setLoading(true);
     try {
       const ds = await fetchDatasets();
-      setDatasets(ds.datasets || []);
+      setDatasets(Array.isArray(ds) ? ds : (ds as any).datasets || []);
       const auditRes = await fetchDatasetAudit(selectedDataset);
       setAudit(auditRes);
     } catch (err) {

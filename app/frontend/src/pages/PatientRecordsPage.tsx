@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, FileText, ChevronRight, Search, Download } from 'lucide-react';
-import { fetchPredictionHistory, getReportHtmlUrl, getReportPdfUrl } from '../api';
+import { fetchPredictionHistory, getReportHtmlUrl, getReportPdfUrl, getDoctorReportPdfUrl, getPatientReportPdfUrl } from '../api';
 import { MedicalDisclaimer } from '../components/MedicalDisclaimer';
 
 interface PatientRecordsPageProps {
@@ -120,12 +120,30 @@ export const PatientRecordsPage: React.FC<PatientRecordsPageProps> = ({ onSelect
                         </button>
                         <a
                           href={getReportPdfUrl(r.record_id)}
-                          download={`clinical_report_${r.record_id}.pdf`}
-                          className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm"
-                          title="Download Official PDF Report"
+                          download={`clinical_decision_report_${r.record_id}.pdf`}
+                          className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap"
+                          title="Download Clinical Decision Support PDF"
                         >
                           <Download className="w-3 h-3" />
-                          <span>PDF</span>
+                          <span>Clinical</span>
+                        </a>
+                        <a
+                          href={getDoctorReportPdfUrl(r.record_id)}
+                          download={`doctor_clinical_report_${r.record_id}.pdf`}
+                          className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap"
+                          title="Download Physician / Doctor Detailed PDF"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>Doctor</span>
+                        </a>
+                        <a
+                          href={getPatientReportPdfUrl(r.record_id)}
+                          download={`patient_health_summary_${r.record_id}.pdf`}
+                          className="px-2 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap"
+                          title="Download Patient-Friendly Summary PDF"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>Patient</span>
                         </a>
                         <a
                           href={getReportHtmlUrl(r.record_id)}

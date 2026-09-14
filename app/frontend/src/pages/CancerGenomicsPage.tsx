@@ -188,7 +188,7 @@ export const CancerGenomicsPage: React.FC = () => {
     }
   }
 
-  async function handleDownloadPdf(evalData: any, reportType: 'doctor' | 'patient') {
+  async function handleDownloadPdf(evalData: any, reportType: 'clinical' | 'doctor' | 'patient') {
     if (!evalData) return;
     setIsDownloadingPdf(true);
     try {
@@ -196,13 +196,24 @@ export const CancerGenomicsPage: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const typeLabel = reportType === 'doctor' ? 'Doctor_Clinical_Dossier' : 'Patient_Friendly_Summary';
+      const typeLabel =
+        reportType === 'doctor'
+          ? 'Doctor_Clinical_Dossier'
+          : reportType === 'patient'
+          ? 'Patient_Friendly_Summary'
+          : 'Clinical_Decision_Report';
       a.download = `${typeLabel}_${evalData.patient_id}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-      setDownloadSuccess(`Successfully downloaded ${reportType === 'doctor' ? 'Doctor Clinical Dossier' : 'Patient Summary'} for ${evalData.patient_id}!`);
+      const label =
+        reportType === 'doctor'
+          ? 'Doctor Clinical Dossier'
+          : reportType === 'patient'
+          ? 'Patient Summary'
+          : 'Clinical Decision Report';
+      setDownloadSuccess(`Successfully downloaded ${label} for ${evalData.patient_id}!`);
       setTimeout(() => setDownloadSuccess(null), 5000);
     } catch (err: any) {
       alert(`PDF download failed: ${err.message}`);
@@ -949,23 +960,32 @@ export const CancerGenomicsPage: React.FC = () => {
                 Generate and download publication-ready clinical dossiers with Ensembl exon maps and GDC case telemetry:
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => handleDownloadPdf(evaluationResult, 'clinical')}
+                  disabled={isDownloadingPdf}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-2 transition-all shadow-md shadow-emerald-600/30 whitespace-nowrap"
+                >
+                  <FileText className="w-4 h-4 text-white" />
+                  Clinical Decision PDF
+                </button>
+
                 <button
                   onClick={() => handleDownloadPdf(evaluationResult, 'doctor')}
                   disabled={isDownloadingPdf}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 flex items-center gap-2 transition-all shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-2 transition-all shadow-md shadow-indigo-600/30 whitespace-nowrap"
                 >
-                  <FileText className="w-4 h-4 text-indigo-400" />
-                  Download Doctor Dossier (PDF)
+                  <FileText className="w-4 h-4 text-white" />
+                  Doctor Dossier (PDF)
                 </button>
 
                 <button
                   onClick={() => handleDownloadPdf(evaluationResult, 'patient')}
                   disabled={isDownloadingPdf}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 flex items-center gap-2 transition-all shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs flex items-center gap-2 transition-all shadow-md shadow-teal-600/30 whitespace-nowrap"
                 >
-                  <UserCheck className="w-4 h-4 text-emerald-400" />
-                  Download Patient Summary (PDF)
+                  <UserCheck className="w-4 h-4 text-white" />
+                  Patient Summary (PDF)
                 </button>
               </div>
             </div>

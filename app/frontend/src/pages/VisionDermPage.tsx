@@ -35,6 +35,7 @@ import {
   fetchSkinReferenceSamples,
   analyzeSkinImage,
   predictMultiModalDiseaseRisk,
+  getReportPdfUrl,
   getDoctorReportPdfUrl,
   getPatientReportPdfUrl,
   fetchRealDermalCases,
@@ -547,22 +548,30 @@ export const VisionDermPage: React.FC = () => {
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" /> Export CSV
           </button>
           {prediction && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={getReportPdfUrl(prediction.record_id)}
+                download={`clinical_decision_report_${prediction.record_id}.pdf`}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center gap-1.5 transition-all whitespace-nowrap"
+                title="Download Standard Clinical Decision Support PDF"
+              >
+                <Download className="w-3.5 h-3.5" /> Clinical PDF
+              </a>
               <a
                 href={getDoctorReportPdfUrl(prediction.record_id)}
                 download={`doctor_clinical_report_${prediction.record_id}.pdf`}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white shadow-md flex items-center gap-1.5 transition-all"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white shadow-md flex items-center gap-1.5 transition-all whitespace-nowrap"
                 title="Download full detailed genetic deficiencies and multi-model report for doctors"
               >
-                <Download className="w-3.5 h-3.5" /> Doctor Detailed PDF
+                <Download className="w-3.5 h-3.5" /> Doctor PDF
               </a>
               <a
                 href={getPatientReportPdfUrl(prediction.record_id)}
                 download={`patient_skin_summary_${prediction.record_id}.pdf`}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md flex items-center gap-1.5 transition-all"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md flex items-center gap-1.5 transition-all whitespace-nowrap"
                 title="Download plain-language skin type and health summary for patients"
               >
-                <Download className="w-3.5 h-3.5" /> Patient Readable PDF
+                <Download className="w-3.5 h-3.5" /> Patient PDF
               </a>
             </div>
           )}
@@ -1447,6 +1456,39 @@ export const VisionDermPage: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* PDF Reports Action Bar */}
+              <div className="pt-4 mt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div className="text-xs text-slate-400 font-sans">
+                  Export verified publication-grade clinical dossiers for record <span className="text-white font-mono font-bold">{prediction.record_id}</span>:
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={getReportPdfUrl(prediction.record_id)}
+                    download={`clinical_decision_report_${prediction.record_id}.pdf`}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center gap-1.5 transition-all whitespace-nowrap"
+                    title="Download Clinical Decision Support PDF"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Clinical PDF
+                  </a>
+                  <a
+                    href={getDoctorReportPdfUrl(prediction.record_id)}
+                    download={`doctor_clinical_report_${prediction.record_id}.pdf`}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md flex items-center gap-1.5 transition-all whitespace-nowrap"
+                    title="Download Physician/Doctor Clinical Dossier PDF"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Doctor PDF
+                  </a>
+                  <a
+                    href={getPatientReportPdfUrl(prediction.record_id)}
+                    download={`patient_health_summary_${prediction.record_id}.pdf`}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white shadow-md flex items-center gap-1.5 transition-all whitespace-nowrap"
+                    title="Download Plain-Language Patient Summary PDF"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Patient PDF
+                  </a>
+                </div>
+              </div>
             </div>
           )}
         </div>

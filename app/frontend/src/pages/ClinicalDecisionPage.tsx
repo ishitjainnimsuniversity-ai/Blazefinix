@@ -19,7 +19,9 @@ import {
   acknowledgeAlert,
   submitDoctorFeedback,
   getReportHtmlUrl,
-  getReportPdfUrl
+  getReportPdfUrl,
+  getDoctorReportPdfUrl,
+  getPatientReportPdfUrl
 } from '../api';
 import { MedicalDisclaimer } from '../components/MedicalDisclaimer';
 
@@ -42,12 +44,40 @@ export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
   const [clinicalNotes, setClinicalNotes] = useState('');
   const [clinicianName, setClinicianName] = useState('Dr. Clinical Attending');
 
-  // Load demo cases on mount
+  // Load demo cases on mount or when initialRecordId changes
   useEffect(() => {
     async function init() {
       try {
         const cases = await fetchDemoCases();
         setDemoCases(cases);
+
+        if (initialRecordId) {
+          // 1. Check recent predictions history in localStorage
+          try {
+            const hist = JSON.parse(localStorage.getItem('blazefinix_prediction_history') || '[]');
+            const foundInHist = hist.find((p: any) => p.record_id === initialRecordId);
+            if (foundInHist) {
+              setSelectedCaseId(initialRecordId);
+              setPrediction(foundInHist);
+              return;
+            }
+          } catch (e) {}
+
+          // 2. Check if it is a demo case ID
+          const matchedCase = cases.find((c) => c.case_id === initialRecordId);
+          if (matchedCase) {
+            setSelectedCaseId(matchedCase.case_id);
+            runPredictionForCase(matchedCase);
+            return;
+          }
+
+          // 3. Fallback: predict for custom ID
+          const customPred = await predictPatientRisk({}, initialRecordId);
+          setSelectedCaseId(initialRecordId);
+          setPrediction(customPred);
+          return;
+        }
+
         if (cases.length > 0) {
           // Default to High Risk case to demonstrate the alert workflow
           const defaultCase = cases.find((c) => c.case_id.includes('HIGH')) || cases[0];
@@ -139,20 +169,39 @@ export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
         </div>
 
         {prediction && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <a
               href={getReportPdfUrl(prediction.record_id)}
-              download={`clinical_report_${prediction.record_id}.pdf`}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all"
+              download={`clinical_decision_report_${prediction.record_id}.pdf`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/30 transition-all whitespace-nowrap"
+              title="Download standard clinical decision support PDF"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Download PDF Report</span>
+              <span>Clinical PDF</span>
+            </a>
+            <a
+              href={getDoctorReportPdfUrl(prediction.record_id)}
+              download={`doctor_clinical_report_${prediction.record_id}.pdf`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all whitespace-nowrap"
+              title="Download detailed physician dossier PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Doctor PDF</span>
+            </a>
+            <a
+              href={getPatientReportPdfUrl(prediction.record_id)}
+              download={`patient_health_summary_${prediction.record_id}.pdf`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white shadow-md shadow-teal-600/30 transition-all whitespace-nowrap"
+              title="Download patient friendly summary PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Patient PDF</span>
             </a>
             <a
               href={getReportHtmlUrl(prediction.record_id)}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-colors whitespace-nowrap"
             >
               <FileText className="w-3.5 h-3.5 text-indigo-400" />
               <span>Web Summary</span>

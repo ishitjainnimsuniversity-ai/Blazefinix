@@ -7,10 +7,18 @@ import {
   Clock,
   Filter,
   Check,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import { AlertData } from '../types';
-import { fetchAlerts, acknowledgeAlert, triageAlert } from '../api';
+import {
+  fetchAlerts,
+  acknowledgeAlert,
+  triageAlert,
+  getReportPdfUrl,
+  getDoctorReportPdfUrl,
+  getPatientReportPdfUrl
+} from '../api';
 import { MedicalDisclaimer } from '../components/MedicalDisclaimer';
 
 interface AlertsPageProps {
@@ -173,7 +181,19 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ onNavigateToDecision }) 
                   </div>
 
                   <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-500">
-                    <span>Contributing: {alt.contributing_factors?.slice(0, 3).join(', ') || 'General profile'}</span>
+                    <span>
+                      Contributing:{' '}
+                      {Array.isArray(alt.contributing_factors) && alt.contributing_factors.length > 0
+                        ? alt.contributing_factors
+                            .slice(0, 3)
+                            .map((f: any) =>
+                              typeof f === 'string'
+                                ? f
+                                : `${f.feature || ''}${f.patient_value ? ` (${f.patient_value})` : ''}`
+                            )
+                            .join(', ')
+                        : 'General profile'}
+                    </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -184,24 +204,54 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ onNavigateToDecision }) 
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2 sm:self-center self-end">
+              <div className="flex flex-wrap items-center gap-1.5 sm:self-center self-end">
                 <button
                   onClick={() => onNavigateToDecision(alt.record_id)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all flex items-center gap-1"
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all flex items-center gap-1 whitespace-nowrap"
                 >
                   <span>Open Case</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
 
+                <a
+                  href={getReportPdfUrl(alt.record_id)}
+                  download={`clinical_decision_report_${alt.record_id}.pdf`}
+                  className="px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all flex items-center gap-1 shadow-sm whitespace-nowrap"
+                  title="Download Clinical Decision Support PDF"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Clinical</span>
+                </a>
+
+                <a
+                  href={getDoctorReportPdfUrl(alt.record_id)}
+                  download={`doctor_clinical_report_${alt.record_id}.pdf`}
+                  className="px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-indigo-700 hover:bg-indigo-600 text-white transition-all flex items-center gap-1 shadow-sm whitespace-nowrap"
+                  title="Download Physician / Doctor Detailed PDF"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Doctor</span>
+                </a>
+
+                <a
+                  href={getPatientReportPdfUrl(alt.record_id)}
+                  download={`patient_health_summary_${alt.record_id}.pdf`}
+                  className="px-2 py-1.5 rounded-lg text-[11px] font-semibold bg-teal-600 hover:bg-teal-500 text-white transition-all flex items-center gap-1 shadow-sm whitespace-nowrap"
+                  title="Download Patient-Friendly Summary PDF"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Patient</span>
+                </a>
+
                 {!alt.acknowledged ? (
                   <button
                     onClick={() => handleAcknowledge(alt.alert_id)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all whitespace-nowrap"
                   >
                     Acknowledge
                   </button>
                 ) : (
-                  <span className="text-[11px] px-2.5 py-1 rounded bg-slate-900 text-emerald-400 border border-slate-800 flex items-center gap-1">
+                  <span className="text-[11px] px-2 py-1.5 rounded bg-slate-900 text-emerald-400 border border-slate-800 flex items-center gap-1 whitespace-nowrap">
                     <Check className="w-3 h-3" />
                     <span>Acknowledged</span>
                   </span>
@@ -210,7 +260,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ onNavigateToDecision }) 
                 <select
                   value={alt.status}
                   onChange={(e) => handleTriage(alt.alert_id, e.target.value)}
-                  className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 focus:outline-none"
+                  className="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 focus:outline-none"
                 >
                   <option value="PENDING">PENDING</option>
                   <option value="REVIEWED">REVIEWED</option>
