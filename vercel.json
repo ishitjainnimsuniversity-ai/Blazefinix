@@ -1,8 +1,10 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "name": "quantum-classical-disease-risk",
   "framework": "vite",
   "buildCommand": "cd app/frontend && npm install && npm run build",
   "outputDirectory": "app/frontend/dist",
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/(.*)",

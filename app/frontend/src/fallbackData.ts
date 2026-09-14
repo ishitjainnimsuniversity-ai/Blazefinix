@@ -921,3 +921,10 @@ export const FALLBACK_BENCHMARK = {
     }
   }
 };
+
+import clinicalReportsData from './clinicalReportsData.json';
+
+export const FALLBACK_TESTED_PATIENTS = clinicalReportsData.tested_patients;
+export const FALLBACK_MODEL_REPORTS = clinicalReportsData.model_reports;
+export const FALLBACK_CLINICAL_REPORTS = clinicalReportsData.reports_by_id as Record<string, any>;
+

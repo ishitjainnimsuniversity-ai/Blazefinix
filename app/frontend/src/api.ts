@@ -18,7 +18,10 @@ import {
   FALLBACK_TOP_CANCERS,
   FALLBACK_REAL_PATIENTS,
   FALLBACK_ARCHITECTURE_USP,
-  FALLBACK_BENCHMARK
+  FALLBACK_BENCHMARK,
+  FALLBACK_TESTED_PATIENTS,
+  FALLBACK_MODEL_REPORTS,
+  FALLBACK_CLINICAL_REPORTS
 } from './fallbackData';
 
 const API_BASE = '/api';
@@ -178,17 +181,38 @@ export async function fetchAuditLogs(role?: string, action?: string): Promise<Au
   return res.json();
 }
 
-export async function fetchReport(recordId: string) {
-  const res = await fetch(`${API_BASE}/reports/${recordId}`);
-  return res.json();
+export async function fetchReport(recordId: string): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE}/reports/${recordId}`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn(`API unavailable for report ${recordId}, using local clinical report fallback`);
+  }
+  return (
+    FALLBACK_CLINICAL_REPORTS[recordId] ||
+    FALLBACK_CLINICAL_REPORTS['DEMO-HIGH-03'] ||
+    null
+  );
 }
 
 export async function fetchTestedPatients(cohort?: string, riskCategory?: string): Promise<TestedPatientItem[]> {
-  const params = new URLSearchParams();
-  if (cohort && cohort !== 'ALL') params.append('cohort', cohort);
-  if (riskCategory && riskCategory !== 'ALL') params.append('risk_category', riskCategory);
-  const res = await fetch(`${API_BASE}/reports/tested-patients?${params.toString()}`);
-  return res.json();
+  try {
+    const params = new URLSearchParams();
+    if (cohort && cohort !== 'ALL') params.append('cohort', cohort);
+    if (riskCategory && riskCategory !== 'ALL') params.append('risk_category', riskCategory);
+    const res = await fetch(`${API_BASE}/reports/tested-patients?${params.toString()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
+  } catch (e) {
+    console.warn('API unavailable for tested patients, loading local cohort fallback');
+  }
+  return FALLBACK_TESTED_PATIENTS as unknown as TestedPatientItem[];
+}
+
+export async function fetchModelReports(): Promise<any[]> {
+  return FALLBACK_MODEL_REPORTS;
 }
 
 export async function fetchSkinReferenceSamples(): Promise<SkinReferenceSample[]> {
