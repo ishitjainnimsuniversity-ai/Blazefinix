@@ -129,8 +129,19 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({ onNavigateToDecision }) 
       {/* Alert Cards List */}
       <div className="space-y-3">
         {alerts.length === 0 ? (
-          <div className="glass-panel rounded-2xl p-12 text-center text-xs text-slate-500">
-            No clinical alerts match the selected priority filters.
+          <div className="glass-panel rounded-2xl p-12 text-center text-xs text-slate-400 space-y-3">
+            <p>No clinical alerts match the selected priority filters.</p>
+            <button
+              onClick={() => {
+                setSeverityFilter('ALL');
+                setStatusFilter('ALL');
+                localStorage.removeItem('blazefinix_alerts');
+                loadAlerts();
+              }}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-md"
+            >
+              Reset Filters & Reload Standard Alerts
+            </button>
           </div>
         ) : (
           alerts.map((alt) => (

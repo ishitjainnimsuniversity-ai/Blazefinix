@@ -15,6 +15,7 @@ import {
 import { PredictionResult, DemoCase } from '../types';
 import {
   fetchDemoCases,
+  FALLBACK_DEMO_CASES,
   predictPatientRisk,
   acknowledgeAlert,
   submitDoctorFeedback,
@@ -32,8 +33,8 @@ interface ClinicalDecisionPageProps {
 export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
   initialRecordId
 }) => {
-  const [demoCases, setDemoCases] = useState<DemoCase[]>([]);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('');
+  const [demoCases, setDemoCases] = useState<DemoCase[]>(FALLBACK_DEMO_CASES);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(initialRecordId || 'DEMO-HIGH-03');
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -49,43 +50,46 @@ export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
     async function init() {
       try {
         const cases = await fetchDemoCases();
-        setDemoCases(cases);
+        const finalCases = Array.isArray(cases) && cases.length > 0 ? cases : FALLBACK_DEMO_CASES;
+        setDemoCases(finalCases);
 
-        if (initialRecordId) {
+        const targetId = initialRecordId;
+        if (targetId) {
           // 1. Check recent predictions history in localStorage
           try {
             const hist = JSON.parse(localStorage.getItem('blazefinix_prediction_history') || '[]');
-            const foundInHist = hist.find((p: any) => p.record_id === initialRecordId);
+            const foundInHist = hist.find((p: any) => p.record_id === targetId);
             if (foundInHist) {
-              setSelectedCaseId(initialRecordId);
+              setSelectedCaseId(targetId);
               setPrediction(foundInHist);
               return;
             }
           } catch (e) {}
 
           // 2. Check if it is a demo case ID
-          const matchedCase = cases.find((c) => c.case_id === initialRecordId);
+          const matchedCase = finalCases.find((c) => c.case_id === targetId);
           if (matchedCase) {
             setSelectedCaseId(matchedCase.case_id);
-            runPredictionForCase(matchedCase);
+            await runPredictionForCase(matchedCase);
             return;
           }
 
           // 3. Fallback: predict for custom ID
-          const customPred = await predictPatientRisk({}, initialRecordId);
-          setSelectedCaseId(initialRecordId);
+          const customPred = await predictPatientRisk({}, targetId);
+          setSelectedCaseId(targetId);
           setPrediction(customPred);
           return;
         }
 
-        if (cases.length > 0) {
-          // Default to High Risk case to demonstrate the alert workflow
-          const defaultCase = cases.find((c) => c.case_id.includes('HIGH')) || cases[0];
-          setSelectedCaseId(defaultCase.case_id);
-          runPredictionForCase(defaultCase);
-        }
+        // Default to High Risk case to demonstrate the alert workflow
+        const defaultCase = finalCases.find((c) => c.case_id.includes('HIGH')) || finalCases[0];
+        setSelectedCaseId(defaultCase.case_id);
+        await runPredictionForCase(defaultCase);
       } catch (err) {
-        console.error('Failed to load demo cases:', err);
+        console.warn('Fallback loading in ClinicalDecisionPage:', err);
+        const fallbackCase = FALLBACK_DEMO_CASES[2] || FALLBACK_DEMO_CASES[0];
+        setSelectedCaseId(fallbackCase.case_id);
+        await runPredictionForCase(fallbackCase);
       }
     }
     init();
@@ -98,7 +102,10 @@ export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
       const res = await predictPatientRisk(demoCase.features, demoCase.case_id);
       setPrediction(res);
     } catch (err) {
-      console.error('Prediction failed:', err);
+      console.warn('Local risk prediction fallback:', err);
+      // Deterministic fallback prediction
+      const fallbackPred = await predictPatientRisk(demoCase.features || {}, demoCase.case_id);
+      setPrediction(fallbackPred);
     } finally {
       setLoading(false);
     }

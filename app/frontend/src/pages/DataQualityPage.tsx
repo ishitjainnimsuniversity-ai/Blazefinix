@@ -29,6 +29,8 @@ export const DataQualityPage: React.FC = () => {
   useEffect(() => {
     loadDatasetsAndAudit();
     loadNCBIHistory();
+    // Auto-fetch default NCBI human reference genome on mount
+    fetchNCBIGenomics('GCF_000001405.40').then((res) => setNcbiResult(res)).catch(() => {});
   }, []);
 
   async function loadDatasetsAndAudit() {
@@ -230,6 +232,33 @@ export const DataQualityPage: React.FC = () => {
           </div>
         </form>
 
+        {/* Quick Reference Presets */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-[11px] text-slate-400">Curated Presets:</span>
+          {[
+            { label: 'GRCh38.p14 (Primary Human)', acc: 'GCF_000001405.40' },
+            { label: 'BRCA1 RefSeq (NM_007294.4)', acc: 'NM_007294.4' },
+            { label: 'TP53 RefSeq (NM_000546.6)', acc: 'NM_000546.6' },
+            { label: 'GRCh37 (hg19 Assembly)', acc: 'GCF_000001405.25' }
+          ].map((preset) => (
+            <button
+              key={preset.acc}
+              type="button"
+              onClick={() => {
+                setNcbiAccession(preset.acc);
+                setNcbiLoading(true);
+                fetchNCBIGenomics(preset.acc)
+                  .then((res) => setNcbiResult(res))
+                  .catch((err) => console.error(err))
+                  .finally(() => setNcbiLoading(false));
+              }}
+              className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-[11px] font-mono transition-colors"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
         {/* Display Fetched Genomic Attributes */}
         {ncbiResult && ncbiResult.features && (
           <div className="mt-5 p-4 rounded-xl bg-slate-900/90 border border-emerald-500/30">
@@ -255,6 +284,37 @@ export const DataQualityPage: React.FC = () => {
                 <div className="text-slate-500 text-[10px]">BUSCO COMPLETENESS</div>
                 <div className="text-emerald-400 font-bold mt-0.5">{ncbiResult.features.busco_completeness}%</div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Indexed NCBI Records Table */}
+        {ncbiHistory.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-slate-800">
+            <div className="text-xs font-semibold text-slate-300 mb-2">
+              Indexed NCBI Curated Reference Records:
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-500 text-[10px]">
+                    <th className="pb-2">ACCESSION</th>
+                    <th className="pb-2">ORGANISM</th>
+                    <th className="pb-2">GENE / REGION</th>
+                    <th className="pb-2">STATUS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  {ncbiHistory.map((rec, idx) => (
+                    <tr key={idx} className="hover:bg-slate-900/40">
+                      <td className="py-2 text-emerald-400 font-bold">{rec.accession}</td>
+                      <td className="py-2 text-slate-400">{rec.organism}</td>
+                      <td className="py-2">{rec.gene}</td>
+                      <td className="py-2 text-[10px] text-slate-400">{rec.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
