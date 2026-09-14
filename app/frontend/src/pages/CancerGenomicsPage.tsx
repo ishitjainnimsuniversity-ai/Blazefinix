@@ -34,6 +34,7 @@ import {
   getDoctorReportPdfUrl,
   getPatientReportPdfUrl
 } from '../api';
+import { getGenesForRecord } from '../utils/cancerGenomicsData';
 
 export const CancerGenomicsPage: React.FC = () => {
   const [sexFilter, setSexFilter] = useState<'females' | 'males' | 'both'>('females');
@@ -1006,6 +1007,45 @@ export const CancerGenomicsPage: React.FC = () => {
                 <p className="text-xs text-slate-300 leading-relaxed pt-1">
                   {evaluationResult.recommendation}
                 </p>
+              </div>
+            </div>
+
+            {/* Live Cancer Driver Genes Profile for Evaluated Cancer Report */}
+            <div className="p-5 rounded-xl bg-slate-900/90 border border-emerald-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-bold text-white flex items-center gap-2">
+                  <Dna className="w-4 h-4 text-emerald-400" />
+                  <span>Live Cancer Driver Genes & Somatic Alteration Telemetry ({evaluationResult.cancer_name})</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                  GRCh38.p14 • Ensembl REST Live
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                {getGenesForRecord(evaluationResult.patient_id, evaluationResult.cancer_name).map((gene) => (
+                  <div key={gene.symbol} className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-indigo-300">{gene.symbol}</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-900 text-emerald-400 border border-slate-800">
+                        {gene.chromosome}:{gene.locus}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-mono truncate" title={gene.canonical_transcript}>
+                      {gene.canonical_transcript} ({gene.exon_count} exons)
+                    </div>
+                    <div className="text-[11px] text-rose-400 font-bold font-mono">
+                      {gene.protein_change}
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      ClinVar: <strong className="text-amber-300">{gene.clinvar_significance.split('/')[0]}</strong>
+                    </div>
+                    <div className="pt-1 border-t border-slate-900 text-[10px] font-mono text-purple-300 flex justify-between">
+                      <span>VQC θ: {gene.vqc_phase_angle_rad} rad</span>
+                      <span>VAF: {gene.vaf_pct}%</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 

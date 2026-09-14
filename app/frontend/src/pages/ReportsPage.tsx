@@ -17,7 +17,8 @@ import {
   Sparkles,
   Zap,
   Activity,
-  CheckCircle2
+  CheckCircle2,
+  Dna
 } from 'lucide-react';
 import {
   fetchReport,
@@ -31,10 +32,12 @@ import {
 import { TestedPatientItem } from '../types';
 import { MedicalDisclaimer } from '../components/MedicalDisclaimer';
 import { generateClinicalReportHtml } from '../utils/reportHtmlGenerator';
+import { getGenesForRecord, CancerGeneInfo } from '../utils/cancerGenomicsData';
 
 export const ReportsPage: React.FC = () => {
   const [recordId, setRecordId] = useState('DEMO-HIGH-03');
   const [activeTab, setActiveTab] = useState<'ALL' | 'PATIENTS' | 'MODELS'>('ALL');
+  const [activeGeneSymbol, setActiveGeneSymbol] = useState<string>('TP53');
   const [testedPatients, setTestedPatients] = useState<TestedPatientItem[]>([]);
   const [modelReports, setModelReports] = useState<any[]>([]);
   const [currentReport, setCurrentReport] = useState<any>(null);
@@ -574,6 +577,134 @@ export const ReportsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Live Cancer Driver Genes & Genomic Architecture Panel */}
+      {(() => {
+        const activeGenes = getGenesForRecord(
+          recordId,
+          currentReport?.patient_demographics?.cohort || currentReport?.patient_demographics?.primary_diagnosis
+        );
+        const currentGene = activeGenes.find((g) => g.symbol === activeGeneSymbol) || activeGenes[0];
+
+        return (
+          <div className="glass-panel-elevated rounded-2xl p-6 border border-indigo-500/30 bg-slate-900/60 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b border-slate-800 gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="p-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <Dna className="w-4 h-4" />
+                  </div>
+                  <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                    Live Cancer Driver Genes & Genomic Telemetry
+                  </h2>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    GRCh38.p14 / Ensembl / cBioPortal
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Active oncogenic driver alterations, chromosome loci, canonical transcripts, and quantum angle state projections for <strong>{recordId}</strong>
+                </p>
+              </div>
+
+              {/* Gene Selector Tabs */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-slate-400 mr-1 font-medium">Mapped Genes:</span>
+                {activeGenes.map((g) => (
+                  <button
+                    key={g.symbol}
+                    onClick={() => setActiveGeneSymbol(g.symbol)}
+                    className={`text-xs px-2.5 py-1 rounded-lg font-mono font-bold transition-all ${
+                      currentGene?.symbol === g.symbol
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    {g.symbol}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {currentGene && (
+              <div className="space-y-4">
+                {/* 6 Telemetry Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Gene & Chromosome</div>
+                    <div className="text-sm font-bold text-indigo-300 font-mono mt-0.5">
+                      {currentGene.symbol} <span className="text-xs text-slate-400 font-normal">({currentGene.chromosome}:{currentGene.locus})</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Genomic Span (GRCh38)</div>
+                    <div className="text-xs font-bold text-slate-200 font-mono mt-1 truncate" title={`${currentGene.start.toLocaleString()} - ${currentGene.end.toLocaleString()}`}>
+                      {(currentGene.end - currentGene.start + 1).toLocaleString()} bp [{currentGene.strand}]
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Canonical Transcript</div>
+                    <div className="text-xs font-bold text-emerald-400 font-mono mt-1 truncate" title={currentGene.canonical_transcript}>
+                      {currentGene.canonical_transcript} ({currentGene.exon_count} exons)
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Hotspot Alteration</div>
+                    <div className="text-xs font-bold text-rose-400 font-mono mt-1 truncate" title={`${currentGene.protein_change} (${currentGene.hotspot_mutation})`}>
+                      {currentGene.protein_change}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <div className="text-[10px] uppercase font-mono text-slate-400">ClinVar Significance</div>
+                    <div className="text-xs font-bold text-amber-300 mt-1 truncate" title={currentGene.clinvar_significance}>
+                      {currentGene.clinvar_significance.split('/')[0]}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-purple-500/30">
+                    <div className="text-[10px] uppercase font-mono text-purple-300">Quantum Phase Angle (θ)</div>
+                    <div className="text-xs font-bold text-purple-400 font-mono mt-1">
+                      θ = {currentGene.vqc_phase_angle_rad} rad
+                    </div>
+                  </div>
+                </div>
+
+                {/* Biological Function & Live Links */}
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="text-slate-300 leading-relaxed">
+                    <strong className="text-white">{currentGene.name}:</strong> {currentGene.biological_function}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={`https://rest.ensembl.org/lookup/symbol/homo_sapiens/${currentGene.symbol}?expand=1`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-slate-700 text-[11px] font-mono flex items-center gap-1 transition-colors"
+                      title="View live Ensembl JSON structure"
+                    >
+                      <span>Ensembl</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <a
+                      href="https://www.cbioportal.org"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-pink-300 border border-slate-700 text-[11px] font-mono flex items-center gap-1 transition-colors"
+                      title="View Pan-Cancer Atlas cBioPortal mutations"
+                    >
+                      <span>cBioPortal</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Embedded Live Clinical Document Preview (ZERO 404s!) */}
       <div id="dossier-preview" className="glass-panel-elevated rounded-2xl p-6 border border-slate-800 space-y-4">

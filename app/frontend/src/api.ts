@@ -449,7 +449,7 @@ export async function fetchDatasetAudit(datasetName: string): Promise<DataQualit
 }
 
 export async function fetchNCBIGenomics(accession: string) {
-  const cleanAcc = (accession || 'GCF_000001405.40').trim();
+  const cleanAcc = (accession || 'GCF_000001405.40').trim().replace(/^GCF\s+/, 'GCF_').replace(/^GCA\s+/, 'GCA_');
 
   // Try official public NCBI Datasets REST API directly
   try {

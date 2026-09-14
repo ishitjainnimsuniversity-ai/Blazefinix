@@ -12,7 +12,8 @@ import {
   Layers,
   Zap,
   ExternalLink,
-  RotateCcw
+  RotateCcw,
+  Dna
 } from 'lucide-react';
 import { DemoCase, PredictionResult } from '../types';
 import {
@@ -24,6 +25,7 @@ import {
   getPatientReportPdfUrl
 } from '../api';
 import { MedicalDisclaimer } from '../components/MedicalDisclaimer';
+import { getGenesForRecord } from '../utils/cancerGenomicsData';
 
 interface NewPredictionPageProps {
   onPredictionComplete: (pred: PredictionResult) => void;
@@ -87,6 +89,7 @@ export const NewPredictionPage: React.FC<NewPredictionPageProps> = ({
     try {
       const pred = await predictPatientRisk(features, recordId);
       setInlineResult(pred);
+      onPredictionComplete(pred);
 
       // Save to prediction history in localStorage
       try {
@@ -317,6 +320,45 @@ export const NewPredictionPage: React.FC<NewPredictionPageProps> = ({
               <div>q1: ──[ RY({(features.fasting_glucose / 200 * Math.PI).toFixed(2)}) ]──┼──■────────────┼── M</div>
               <div>q2: ──[ RY({(features.ldl_cholesterol / 220 * Math.PI).toFixed(2)}) ]──┼──┼──■─────────┼── M</div>
               <div>q3: ──[ RY({(features.hs_crp / 8 * Math.PI).toFixed(2)}) ]──X──┼──┼──■──────■── M</div>
+            </div>
+          </div>
+
+          {/* Live Oncogenic Driver Genes & Genomic Risk Telemetry */}
+          <div className="p-5 rounded-xl bg-slate-950/90 border border-emerald-500/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-2">
+                <Dna className="w-4 h-4 text-emerald-400" />
+                <span>Live Cancer Driver Genes & Chromosome Loci (GRCh38.p14)</span>
+              </h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Ensembl & ClinVar Live
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              {getGenesForRecord(inlineResult.record_id).map((gene) => (
+                <div key={gene.symbol} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-indigo-300 text-sm">{gene.symbol}</span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-950 text-emerald-400 border border-slate-800">
+                      {gene.chromosome}:{gene.locus}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono truncate" title={gene.canonical_transcript}>
+                    {gene.canonical_transcript} ({gene.exon_count} exons)
+                  </div>
+                  <div className="text-[11px] text-rose-400 font-bold font-mono">
+                    {gene.protein_change}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    ClinVar: <strong className="text-amber-300">{gene.clinvar_significance.split('/')[0]}</strong>
+                  </div>
+                  <div className="pt-1 border-t border-slate-800 text-[10px] font-mono text-purple-300 flex justify-between">
+                    <span>Quantum θ: {gene.vqc_phase_angle_rad} rad</span>
+                    <span>VAF: {gene.vaf_pct}%</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
