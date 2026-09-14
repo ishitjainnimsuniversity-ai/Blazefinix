@@ -372,6 +372,43 @@ export function simulateQuantumCircuit(params: {
     for (let q = 0; q < n - 1; q++) {
       applyCNOT(q, q + 1);
     }
+  } else if (preset === 'cardiometabolic') {
+    // Cardiometabolic encoding (Blood Pressure, Glucose, HbA1c, hs-CRP)
+    for (let i = 0; i < n; i++) {
+      applyH(i);
+      applyRy(i, (feats[i % feats.length] || 1.1) * 0.95);
+    }
+    for (let i = 0; i < n - 1; i++) {
+      applyCNOT(i, i + 1);
+      applyRz(i + 1, (feats[i % feats.length] || 0.8) * 0.45);
+    }
+  } else if (preset === 'dermal_vision') {
+    // Skin & Dermal Melanoma encoding (Fitzpatrick, MC1R, Lesion ABCD)
+    for (let i = 0; i < n; i++) {
+      applyH(i);
+      applyRx(i, (feats[i % feats.length] || 0.9) * 1.15);
+    }
+    if (n >= 2) {
+      applyCNOT(0, 1);
+      if (n >= 4) applyCNOT(2, 3);
+    }
+    for (let i = 0; i < n; i++) {
+      applyRy(i, (feats[(i + 1) % feats.length] || 0.7) * 0.85);
+    }
+  } else if (preset === 'vqe_molecular') {
+    // VQE Molecular Cancer Drug Target Binding (Cisplatin/Olaparib ground state)
+    for (let i = 0; i < n; i++) {
+      applyH(i);
+      applyRy(i, (feats[i % feats.length] || 0.5) * 1.4);
+    }
+    // Entangling ring for fermionic correlation
+    for (let i = 0; i < n - 1; i++) {
+      applyCNOT(i, i + 1);
+    }
+    if (n > 2) applyCNOT(n - 1, 0);
+    for (let i = 0; i < n; i++) {
+      applyRz(i, (feats[i % feats.length] || 0.5) * -0.9);
+    }
   } else if (preset === 'qft') {
     for (let i = 0; i < n; i++) {
       applyH(i);
