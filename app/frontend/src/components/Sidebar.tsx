@@ -1,0 +1,199 @@
+import React from 'react';
+import {
+  LayoutDashboard,
+  Stethoscope,
+  PlusCircle,
+  Camera,
+  BellRing,
+  UserCheck,
+  FlaskConical,
+  Atom,
+  Database,
+  Users,
+  ShieldCheck,
+  Sliders,
+  FileText,
+  Layers,
+  Dna,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+
+export type NavTab =
+  | 'dashboard'
+  | 'user_guide'
+  | 'architecture_usp'
+  | 'cancer_genomics'
+  | 'decision_support'
+  | 'new_prediction'
+  | 'vision_derm'
+  | 'alerts'
+  | 'doctor_review'
+  | 'model_lab'
+  | 'quantum_lab'
+  | 'data_quality'
+  | 'patient_records'
+  | 'reports'
+  | 'audit_logs'
+  | 'settings';
+
+interface SidebarProps {
+  currentTab: NavTab;
+  onSelectTab: (tab: NavTab) => void;
+  pendingAlertsCount: number;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  currentTab,
+  onSelectTab,
+  pendingAlertsCount,
+  isCollapsed = false,
+  onToggleCollapse
+}) => {
+  const navItems: { id: NavTab; label: string; icon: any; badge?: number }[] = [
+    { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
+    { id: 'user_guide', label: 'Model Operating Guide', icon: BookOpen },
+    { id: 'cancer_genomics', label: 'Cancer Genomics & APIs', icon: Dna },
+    { id: 'architecture_usp', label: 'Hybrid AI/QML Architecture', icon: Layers },
+    { id: 'decision_support', label: 'Clinical AI Decision', icon: Stethoscope },
+    { id: 'vision_derm', label: 'Skin & Genomic Vision', icon: Camera },
+    { id: 'new_prediction', label: 'New Risk Prediction', icon: PlusCircle },
+    { id: 'alerts', label: 'Alerts Center', icon: BellRing, badge: pendingAlertsCount },
+    { id: 'doctor_review', label: 'Doctor Review Loop', icon: UserCheck },
+    { id: 'model_lab', label: 'Model Benchmark Lab', icon: FlaskConical },
+    { id: 'quantum_lab', label: 'Quantum Circuit Lab', icon: Atom },
+    { id: 'data_quality', label: 'Data Quality & NCBI', icon: Database },
+    { id: 'patient_records', label: 'Cohort Records', icon: Users },
+    { id: 'reports', label: 'Clinical Reports', icon: FileText },
+    { id: 'audit_logs', label: 'Audit Trail', icon: ShieldCheck },
+    { id: 'settings', label: 'Thresholds & Settings', icon: Sliders },
+  ];
+
+  return (
+    <aside
+      className={`shrink-0 glass-panel border-r border-slate-800/80 flex flex-col h-screen select-none transition-all duration-300 ${
+        isCollapsed ? 'w-16' : 'w-60 lg:w-64'
+      }`}
+    >
+      {/* Brand Header without any team name */}
+      <div className="h-16 px-3 lg:px-4 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 overflow-hidden">
+          <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 to-emerald-500 p-0.5 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+              <Atom className="w-5 h-5 text-indigo-400" />
+            </div>
+          </div>
+          {!isCollapsed && (
+            <div className="min-w-0">
+              <div className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+                <span>BLAZEFINIX</span>
+                <span className="text-xs px-1 py-0.5 rounded bg-indigo-500/20 text-indigo-400 font-mono">QML</span>
+              </div>
+              <div className="text-[10px] text-slate-400 tracking-wider uppercase font-medium truncate">
+                Clinical AI Platform
+              </div>
+            </div>
+          )}
+        </div>
+
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        )}
+      </div>
+
+      {/* Navigation Links */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        {!isCollapsed ? (
+          <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            Clinical Operations
+          </div>
+        ) : (
+          <div className="h-2" />
+        )}
+        {navItems.slice(0, 6).map((item) => {
+          const Icon = item.icon;
+          const isActive = currentTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelectTab(item.id)}
+              title={isCollapsed ? item.label : undefined}
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2 py-2.5' : 'justify-between px-3 py-2.5'} rounded-xl text-xs font-medium transition-all ${
+                isActive
+                  ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5'} min-w-0`}>
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                {!isCollapsed && <span className="truncate text-left">{item.label}</span>}
+              </div>
+              {!isCollapsed && item.badge !== undefined && item.badge > 0 && (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 shrink-0">
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {!isCollapsed ? (
+          <div className="pt-4 px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            Research & Validation
+          </div>
+        ) : (
+          <div className="h-4 border-t border-slate-800/60 my-2" />
+        )}
+        {navItems.slice(6).map((item) => {
+          const Icon = item.icon;
+          const isActive = currentTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelectTab(item.id)}
+              title={isCollapsed ? item.label : undefined}
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2 py-2.5' : 'justify-between px-3 py-2.5'} rounded-xl text-xs font-medium transition-all ${
+                isActive
+                  ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+              }`}
+            >
+              <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5'} min-w-0`}>
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                {!isCollapsed && <span className="truncate text-left">{item.label}</span>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Footer Info */}
+      <div className="p-3 border-t border-slate-800/80 bg-slate-950/50">
+        {!isCollapsed ? (
+          <>
+            <div className="text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Engine Status</span>
+              <span className="text-emerald-400 font-mono font-medium">ONLINE</span>
+            </div>
+            <div className="mt-0.5 text-[10px] text-slate-500 truncate">
+              Hybrid XGBoost + VQC
+            </div>
+          </>
+        ) : (
+          <div className="flex justify-center" title="Engine Status: ONLINE">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+};
