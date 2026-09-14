@@ -34,7 +34,7 @@ import {
   getDoctorReportPdfUrl,
   getPatientReportPdfUrl
 } from '../api';
-import { getGenesForRecord } from '../utils/cancerGenomicsData';
+import { getGenesForRecord, WORLD_CANCER_PATIENTS, WorldCancerPatient } from '../utils/cancerGenomicsData';
 
 export const CancerGenomicsPage: React.FC = () => {
   const [sexFilter, setSexFilter] = useState<'females' | 'males' | 'both'>('females');
@@ -42,9 +42,9 @@ export const CancerGenomicsPage: React.FC = () => {
   const [selectedCancer, setSelectedCancer] = useState<any>(null);
   const [selectedGene, setSelectedGene] = useState<string>('BRCA1');
   
-  // Real Patients Library (Both Sexes)
+  // Real Patients Library (World Pan-Cancer & Sexes)
   const [realPatientsData, setRealPatientsData] = useState<any>(null);
-  const [realPatientSexTab, setRealPatientSexTab] = useState<'females' | 'males'>('females');
+  const [realPatientSexTab, setRealPatientSexTab] = useState<'world' | 'females' | 'males'>('world');
   const [selectedLibraryPatient, setSelectedLibraryPatient] = useState<any>(null);
 
   // Live Data States
@@ -313,7 +313,28 @@ export const CancerGenomicsPage: React.FC = () => {
   }
 
   const activeCancersList = topCancersData ? topCancersData.breakdown[sexFilter] : [];
-  const activeLibraryPatients = realPatientsData ? realPatientsData[realPatientSexTab] : [];
+  const activeLibraryPatients = realPatientSexTab === 'world'
+    ? WORLD_CANCER_PATIENTS.map((wp) => ({
+        patient_id: wp.patient_id,
+        cancer_key: wp.tcga_project.toLowerCase().replace('tcga-', ''),
+        cancer_name: wp.cancer_type,
+        project_id: wp.tcga_project,
+        study_id: wp.cbioportal_study,
+        primary_site: wp.cancer_type,
+        primary_diagnosis: `${wp.cancer_type} (${wp.stage})`,
+        gender: wp.gender.toLowerCase(),
+        age: wp.age,
+        stage: wp.stage,
+        driver_mutations: wp.genes.map((g) => `${g.symbol} (${g.protein_change})`),
+        hybrid_risk_score: wp.hybrid_risk,
+        classical_prob: wp.classical_risk,
+        quantum_prob: wp.quantum_risk,
+        risk_tier: wp.risk_tier,
+        risk_color: wp.risk_color,
+        recommendation: wp.recommendation,
+        genes: wp.genes
+      }))
+    : (realPatientsData ? realPatientsData[realPatientSexTab] : []);
 
   return (
     <div className="space-y-8 min-w-0 max-w-full">
@@ -406,15 +427,24 @@ export const CancerGenomicsPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Gender Tab for Real Patients */}
-          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+          {/* Gender & World Tab for Real Patients */}
+          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs flex-wrap gap-1">
+            <button
+              onClick={() => setRealPatientSexTab('world')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                realPatientSexTab === 'world' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Dna className="w-3.5 h-3.5" />
+              <span>World 6-Database Cohort (14 TCGA Tumors)</span>
+            </button>
             <button
               onClick={() => setRealPatientSexTab('females')}
               className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
                 realPatientSexTab === 'females' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Female Cohort (5 Real Patients)
+              Female Cohort (5 Patients)
             </button>
             <button
               onClick={() => setRealPatientSexTab('males')}
@@ -422,7 +452,7 @@ export const CancerGenomicsPage: React.FC = () => {
                 realPatientSexTab === 'males' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Male Cohort (5 Real Patients)
+              Male Cohort (5 Patients)
             </button>
           </div>
         </div>
@@ -495,7 +525,33 @@ export const CancerGenomicsPage: React.FC = () => {
                     Load into AI Model & Evaluate
                   </button>
 
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1">
+                    <button
+                      onClick={() => handleDownloadPdf({
+                        patient_id: p.patient_id,
+                        cancer_name: p.cancer_name,
+                        cancer_key: p.cancer_key,
+                        project_id: p.project_id,
+                        study_id: p.study_id,
+                        gender: p.gender,
+                        age: p.age,
+                        stage: p.stage,
+                        driver_mutations: p.driver_mutations,
+                        hybrid_risk_score: p.hybrid_risk_score,
+                        risk_tier: p.risk_tier,
+                        risk_color: p.risk_color,
+                        recommendation: p.recommendation,
+                        classical_breakdown: { xgboost_prob: p.classical_prob },
+                        quantum_metrics: { vqc_expectation: p.quantum_prob, qubits_utilized: 4 }
+                      }, 'clinical')}
+                      disabled={isDownloadingPdf}
+                      className="py-1 px-1 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/70 text-[10px] font-medium flex items-center justify-center gap-1"
+                      title="Download Clinical Decision Support PDF"
+                    >
+                      <Download className="w-3 h-3 text-emerald-400" />
+                      Clinical
+                    </button>
+
                     <button
                       onClick={() => handleDownloadPdf({
                         patient_id: p.patient_id,
@@ -515,10 +571,11 @@ export const CancerGenomicsPage: React.FC = () => {
                         quantum_metrics: { vqc_expectation: p.quantum_prob, qubits_utilized: 4 }
                       }, 'doctor')}
                       disabled={isDownloadingPdf}
-                      className="py-1 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-[11px] font-medium flex items-center justify-center gap-1"
+                      className="py-1 px-1 rounded-lg bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-700/70 text-[10px] font-medium flex items-center justify-center gap-1"
+                      title="Download Physician / Doctor Detailed PDF"
                     >
                       <FileText className="w-3 h-3 text-indigo-400" />
-                      Doctor PDF
+                      Doctor
                     </button>
 
                     <button
@@ -540,10 +597,11 @@ export const CancerGenomicsPage: React.FC = () => {
                         quantum_metrics: { vqc_expectation: p.quantum_prob, qubits_utilized: 4 }
                       }, 'patient')}
                       disabled={isDownloadingPdf}
-                      className="py-1 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-[11px] font-medium flex items-center justify-center gap-1"
+                      className="py-1 px-1 rounded-lg bg-teal-900/60 hover:bg-teal-800 text-teal-200 border border-teal-700/70 text-[10px] font-medium flex items-center justify-center gap-1"
+                      title="Download Patient Plain-Language Summary PDF"
                     >
-                      <UserCheck className="w-3 h-3 text-emerald-400" />
-                      Patient PDF
+                      <UserCheck className="w-3 h-3 text-teal-400" />
+                      Patient
                     </button>
                   </div>
                 </div>

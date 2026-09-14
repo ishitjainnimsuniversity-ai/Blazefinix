@@ -49,11 +49,11 @@ export const ReportsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'DOCUMENT' | 'INTERACTIVE'>('DOCUMENT');
 
   const quickRecords = [
-    { id: 'DEMO-HIGH-03', label: 'High Risk Patient', category: 'High Risk', desc: 'Accelerated cardiometabolic risks (Elevated SBP, HbA1c)' },
-    { id: 'DEMO-CRIT-04', label: 'Critical Risk Patient', category: 'Critical', desc: 'Immediate clinical alert state with severe biomarker deviation' },
-    { id: 'R-CAD-1042', label: 'Cardio Cohort Patient', category: 'Cohort', desc: 'Real research cohort patient from cardiometabolic dataset' },
+    { id: 'TCGA-BH-A0B2', label: 'Breast (BRCA) Patient', category: 'TCGA BRCA', desc: 'Real TCGA Stage IIA donor with BRCA1 & TP53 alterations' },
+    { id: 'TCGA-44-3918', label: 'Lung (LUAD) Patient', category: 'TCGA LUAD', desc: 'Real TCGA Stage IB lung cancer donor with EGFR mutation' },
+    { id: 'TCGA-AA-3666', label: 'Colon (COAD) Patient', category: 'TCGA COAD', desc: 'Real TCGA Stage I colorectal donor with APC mutation' },
+    { id: 'TCGA-D1-A17D', label: 'Melanoma (SKCM) Patient', category: 'TCGA SKCM', desc: 'Real TCGA Stage IIB melanoma donor with BRAF V600E' },
     { id: 'MODEL-HYBRID', label: 'Hybrid QML Model Report', category: 'Ensemble', desc: '60% XGBoost + 40% 4-Qubit VQC Ensemble validation report' },
-    { id: 'MODEL-XGBOOST', label: 'XGBoost Model Report', category: 'Classical', desc: '100-Tree Gradient Boosted baseline evaluation dossier' },
     { id: 'MODEL-VQC', label: '4-Qubit VQC Quantum Report', category: 'Quantum', desc: 'Parameterized Quantum Circuit with 100% recall sensitivity' },
   ];
 
