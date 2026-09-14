@@ -17,6 +17,7 @@ import { VisionDermPage } from './pages/VisionDermPage';
 import { ArchitectureUspPage } from './pages/ArchitectureUspPage';
 import { CancerGenomicsPage } from './pages/CancerGenomicsPage';
 import { UserGuidePage } from './pages/UserGuidePage';
+import { PermanentQrModal } from './components/PermanentQrModal';
 import { fetchAlerts, fetchDemoCases, predictPatientRisk } from './api';
 import { PredictionResult } from './types';
 
@@ -27,6 +28,7 @@ export const App: React.FC = () => {
   const [activeModelVersion, setActiveModelVersion] = useState<string>('Hybrid-VQC-v1.0');
   const [selectedRecordId, setSelectedRecordId] = useState<string | undefined>(undefined);
   const [isDemoRunning, setIsDemoRunning] = useState<boolean>(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     refreshAlertCount();
@@ -88,6 +90,7 @@ export const App: React.FC = () => {
         pendingAlertsCount={pendingAlertsCount}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onOpenQr={() => setIsQrModalOpen(true)}
       />
 
       {/* Main Workspace Viewport */}
@@ -97,6 +100,13 @@ export const App: React.FC = () => {
           pendingAlertsCount={pendingAlertsCount}
           onRunDemo={handleRunFullDemo}
           isDemoRunning={isDemoRunning}
+          onOpenQr={() => setIsQrModalOpen(true)}
+        />
+
+        {/* Permanent 24/7 Mobile QR Modal */}
+        <PermanentQrModal
+          isOpen={isQrModalOpen}
+          onClose={() => setIsQrModalOpen(false)}
         />
 
         <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 lg:p-6 bg-gradient-to-b from-slate-950 via-slate-900/40 to-slate-950">

@@ -17,11 +17,21 @@ import {
   Layers,
   Sparkles,
   Sliders,
-  Database
+  Database,
+  QrCode,
+  Smartphone,
+  Download,
+  ExternalLink,
+  Globe,
+  Copy,
+  Check,
+  ShieldCheck
 } from 'lucide-react';
 
 export const UserGuidePage: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>('quickstart');
+  const [guideCloud, setGuideCloud] = useState<'vercel' | 'github'>('vercel');
+  const [guideCopied, setGuideCopied] = useState<boolean>(false);
 
   return (
     <div className="space-y-8">
@@ -123,6 +133,17 @@ export const UserGuidePage: React.FC = () => {
           }`}
         >
           📄 Doctor vs Patient PDF Reports
+        </button>
+        <button
+          onClick={() => setActiveSection('mobile_qr_guide')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            activeSection === 'mobile_qr_guide'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-950/50'
+              : 'text-emerald-300 hover:text-white bg-emerald-950/30 border border-emerald-900/40'
+          }`}
+        >
+          <QrCode className="w-3.5 h-3.5" />
+          📱 Permanent Mobile QR (24/7 Cloud)
         </button>
       </div>
 
@@ -488,6 +509,178 @@ export const UserGuidePage: React.FC = () => {
                     </ul>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SECTION 7: PERMANENT 24/7 MOBILE QR ACCESS */}
+      {activeSection === 'mobile_qr_guide' && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="glass-panel p-6 border border-slate-800 rounded-2xl bg-slate-900/50 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <QrCode className="w-5 h-5 text-emerald-400" />
+                  Permanent 24/7 Mobile QR Code & Cloud Resilience Guide
+                </h2>
+                <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                  Scan to launch the complete Blazefinix clinical AI suite on any mobile phone or tablet. Works continuously even when your personal laptop or computer is powered off.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-bold font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  GLOBAL 24/7 SLA
+                </span>
+              </div>
+            </div>
+
+            {/* Core Explanation Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                  <Globe className="w-4 h-4 text-emerald-400" />
+                  Zero Local Dependency
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  The application is compiled and deployed to global edge cloud clusters (Vercel Edge & GitHub Pages CDN). It does not require any local dev server or terminal to remain running.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-sky-400" />
+                  Universal Mobile Scanning
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Point any smartphone camera (iPhone iOS 11+, Android Google Lens, Samsung Camera) at the QR code below to immediately open the full touch-optimized interface.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 text-purple-400" />
+                  Dual Redundant Mirrors
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Includes both Vercel Edge primary deployment and GitHub Pages secondary mirror with automatic client-side mathematical fallback models for 100% continuous uptime.
+                </p>
+              </div>
+            </div>
+
+            {/* Interactive QR Display & Action Panel */}
+            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex flex-col items-center text-center space-y-3 shrink-0">
+                <div className="p-3.5 rounded-2xl bg-white shadow-xl shadow-black/80 hover:scale-105 transition-transform duration-200">
+                  <img
+                    src={guideCloud === 'vercel' ? './app_qr_code_vercel.png' : './app_qr_code_github.png'}
+                    alt="Blazefinix Permanent Cloud QR Code"
+                    className="w-56 h-56 object-contain rounded-lg"
+                  />
+                </div>
+                <span className="text-xs text-slate-400 font-mono">
+                  Scan: {guideCloud === 'vercel' ? 'Vercel Primary' : 'GitHub Mirror'}
+                </span>
+              </div>
+
+              <div className="space-y-4 flex-1 max-w-xl">
+                {/* Cloud toggle */}
+                <div className="flex items-center bg-slate-900 rounded-xl p-1 border border-slate-800">
+                  <button
+                    onClick={() => setGuideCloud('vercel')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                      guideCloud === 'vercel'
+                        ? 'bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Globe className="w-3.5 h-3.5" /> Vercel Edge (Primary)
+                  </button>
+                  <button
+                    onClick={() => setGuideCloud('github')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                      guideCloud === 'github'
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" /> GitHub Pages (Mirror)
+                  </button>
+                </div>
+
+                {/* URL display */}
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono flex items-center justify-between gap-2">
+                  <span className="text-sky-300 truncate select-all">
+                    {guideCloud === 'vercel'
+                      ? 'https://quantum-classical-disease-risk.vercel.app/'
+                      : 'https://ishitjainnimsuniversity-ai.github.io/blazefinix/'}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const url =
+                        guideCloud === 'vercel'
+                          ? 'https://quantum-classical-disease-risk.vercel.app/'
+                          : 'https://ishitjainnimsuniversity-ai.github.io/blazefinix/';
+                      navigator.clipboard.writeText(url);
+                      setGuideCopied(true);
+                      setTimeout(() => setGuideCopied(false), 2000);
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1 shrink-0"
+                  >
+                    {guideCopied ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" /> Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 text-slate-400" /> Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Download action buttons */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-semibold">
+                  <a
+                    href={
+                      guideCloud === 'vercel'
+                        ? 'https://quantum-classical-disease-risk.vercel.app/'
+                        : 'https://ishitjainnimsuniversity-ai.github.io/blazefinix/'
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 flex items-center justify-center gap-1.5 transition-colors text-center"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Launch Now
+                  </a>
+                  <a
+                    href={guideCloud === 'vercel' ? './app_qr_code_vercel.png' : './app_qr_code_github.png'}
+                    download={`blazefinix_qr_${guideCloud}.png`}
+                    className="p-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 flex items-center justify-center gap-1.5 transition-colors text-center"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download PNG
+                  </a>
+                  <a
+                    href={guideCloud === 'vercel' ? './app_qr_code_vercel.svg' : './app_qr_code_github.svg'}
+                    download={`blazefinix_qr_${guideCloud}.svg`}
+                    className="col-span-2 sm:col-span-1 p-2.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 flex items-center justify-center gap-1.5 transition-colors text-center"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download SVG
+                  </a>
+                </div>
+
+                {/* Presentation Badge Card */}
+                <a
+                  href="./app_qr_presentation_badge.png"
+                  download="blazefinix_clinical_presentation_qr_badge.png"
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-950/60 to-purple-950/60 hover:from-indigo-900/60 hover:to-purple-900/60 text-slate-200 border border-indigo-500/30 text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-sm"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  Download High-Resolution Conference Presentation QR Poster Badge (PNG)
+                </a>
               </div>
             </div>
           </div>

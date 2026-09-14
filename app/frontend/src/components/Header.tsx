@@ -1,18 +1,20 @@
 import React from 'react';
-import { Cpu, Bell, Activity, PlayCircle, ShieldCheck } from 'lucide-react';
+import { Cpu, Bell, Activity, PlayCircle, ShieldCheck, QrCode } from 'lucide-react';
 
 interface HeaderProps {
   activeModelVersion?: string;
   pendingAlertsCount: number;
   onRunDemo: () => void;
   isDemoRunning?: boolean;
+  onOpenQr?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeModelVersion = 'Hybrid-VQC-v1.0',
   pendingAlertsCount,
   onRunDemo,
-  isDemoRunning = false
+  isDemoRunning = false,
+  onOpenQr
 }) => {
   return (
     <header className="h-16 px-6 glass-panel border-b border-slate-800/80 flex items-center justify-between sticky top-0 z-30">
@@ -33,6 +35,18 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Permanent Mobile QR Button */}
+        {onOpenQr && (
+          <button
+            onClick={onOpenQr}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 shadow-sm transition-all animate-pulse hover:animate-none"
+            title="Scan Permanent 24/7 Mobile QR Code"
+          >
+            <QrCode className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">24/7 Mobile QR</span>
+          </button>
+        )}
+
         {/* Full Demo Trigger Button */}
         <button
           onClick={onRunDemo}
