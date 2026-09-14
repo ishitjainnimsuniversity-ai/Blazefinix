@@ -10,6 +10,7 @@ from app.backend.database.models import ModelRecord
 from app.backend.services.pipeline_service import pipeline_service
 from app.backend.qml.quantum_circuit import QuantumCircuitBuilder
 from app.backend.qml.backend_manager import quantum_backend_manager
+from app.backend.qml.quantum_simulator import quantum_simulator
 from app.backend.schemas.pydantic_models import ModelTrainRequest
 
 router = APIRouter(prefix="/models", tags=["Model Research & Quantum Lab"])
@@ -87,6 +88,77 @@ def get_quantum_circuit(qubits: int = 4, depth: int = 2):
         "gate_layers": gate_layers,
         "backend_status": backend_status
     }
+
+
+@router.post("/quantum-simulator/run")
+def run_quantum_simulation(payload: dict):
+    """
+    Executes an exact statevector quantum simulation using Qiskit Aer & PennyLane.
+    Extracts full 2^N complex statevector, measurement counts, Bloch vectors,
+    fidelity, and Von Neumann entanglement entropy.
+    """
+    try:
+        n_qubits = int(payload.get("qubits", 4))
+        gates = payload.get("gates", None)
+        shots = int(payload.get("shots", 1024))
+        noise_level = float(payload.get("noise_level", 0.0))
+        preset = payload.get("preset", None)
+        feature_values = payload.get("feature_values", None)
+
+        result = quantum_simulator.simulate_circuit(
+            n_qubits=n_qubits,
+            gates=gates,
+            shots=shots,
+            noise_level=noise_level,
+            preset=preset,
+            feature_values=feature_values
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quantum simulation error: {str(e)}")
+
+
+@router.post("/quantum-simulator/train-qnn")
+def train_hybrid_quantum_neural_network(payload: dict):
+    """
+    Trains a Deep Learning Hybrid Quantum Neural Network (PyTorch Encoder -> PennyLane VQC -> Classifier)
+    using Adam optimizer and parameter-shift quantum gradients.
+    """
+    try:
+        epochs = int(payload.get("epochs", 12))
+        learning_rate = float(payload.get("learning_rate", 0.03))
+        batch_size = int(payload.get("batch_size", 16))
+        dataset_type = payload.get("dataset_type", "cancer_tcga")
+
+        result = quantum_simulator.train_deep_hybrid_qnn(
+            epochs=epochs,
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            dataset_type=dataset_type
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"QNN Training error: {str(e)}")
+
+
+@router.post("/quantum-simulator/kernel")
+def compute_quantum_state_kernel(payload: dict):
+    """
+    Computes ZZ-FeatureMap Quantum Kernel overlap matrix between multi-omics patient samples.
+    """
+    try:
+        samples = payload.get("samples", [])
+        if not samples:
+            samples = [
+                [0.85, -1.24, 1.62, -0.45],
+                [-0.92, 0.44, -1.10, 0.78],
+                [1.15, -0.80, 1.35, -0.30],
+                [-1.05, 0.65, -0.95, 0.88]
+            ]
+        result = quantum_simulator.compute_quantum_kernel(samples)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quantum kernel error: {str(e)}")
 
 
 @router.get("/architecture-usp")

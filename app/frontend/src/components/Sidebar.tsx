@@ -67,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'alerts', label: 'Alerts Center', icon: BellRing, badge: pendingAlertsCount },
     { id: 'doctor_review', label: 'Doctor Review Loop', icon: UserCheck },
     { id: 'model_lab', label: 'Model Benchmark Lab', icon: FlaskConical },
-    { id: 'quantum_lab', label: 'Quantum Circuit Lab', icon: Atom },
+    { id: 'quantum_lab', label: 'Quantum Simulator (ML/DL)', icon: Atom },
     { id: 'data_quality', label: 'Data Quality & NCBI', icon: Database },
     { id: 'patient_records', label: 'Cohort Records', icon: Users },
     { id: 'reports', label: 'Clinical Reports', icon: FileText },

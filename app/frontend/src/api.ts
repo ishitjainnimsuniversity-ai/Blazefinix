@@ -27,6 +27,17 @@ import {
 } from './fallbackData';
 export { FALLBACK_CLINICAL_REPORTS };
 
+import {
+  simulateQuantumCircuit,
+  trainDeepHybridQNN,
+  computeQuantumKernelMatrix,
+  SimulationResult,
+  QNNTrainingResult,
+  QNNTrainingEpoch,
+  QuantumGate
+} from './utils/quantumSimulatorEngine';
+export type { SimulationResult, QNNTrainingResult, QNNTrainingEpoch, QuantumGate };
+
 const API_BASE = '/api';
 
 /**
@@ -422,6 +433,49 @@ Ansatz: StronglyEntangling (Rot + CNOT Ring)
     state_fidelity: 0.9982,
     entanglement_entropy: 0.8412
   });
+}
+
+export async function runQuantumSimulator(params: {
+  qubits: number;
+  gates?: QuantumGate[];
+  preset?: string;
+  shots?: number;
+  noise_level?: number;
+  feature_values?: number[];
+}): Promise<SimulationResult> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(`${API_BASE}/models/quantum-simulator/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.state_amplitudes) {
+        return data;
+      }
+    }
+  } catch (e) {
+    // Graceful fallback to client-side real statevector simulator
+  }
+  return simulateQuantumCircuit(params);
+}
+
+export async function trainQuantumNeuralNetwork(params: {
+  epochs?: number;
+  learningRate?: number;
+  datasetType?: string;
+  onEpochProgress?: (epochData: any) => void;
+}): Promise<QNNTrainingResult> {
+  return trainDeepHybridQNN(params);
+}
+
+export async function runQuantumKernel(samples: number[][]) {
+  return computeQuantumKernelMatrix(samples);
 }
 
 export async function fetchDatasets() {
