@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component, ErrorInfo } from 'react';
 import {
   Camera,
   Activity,
@@ -51,7 +51,61 @@ import {
 } from '../types';
 import { MedicalDisclaimer } from '../components/MedicalDisclaimer';
 
-export const VisionDermPage: React.FC = () => {
+// Safe helper to read bloch theta angle whether stored as dictionary or array
+function getBlochTheta(coords: any, key: string, index: number): string {
+  if (!coords) return '0.00';
+  if (coords[key]?.theta !== undefined) return Number(coords[key].theta).toFixed(2);
+  if (Array.isArray(coords) && coords[index]?.theta !== undefined) return Number(coords[index].theta).toFixed(2);
+  if (coords[index]?.theta !== undefined) return Number(coords[index].theta).toFixed(2);
+  return '0.00';
+}
+
+class VisionDermErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error: error?.message || String(error) };
+  }
+
+  componentDidCatch(error: any, errorInfo: ErrorInfo) {
+    console.error('VisionDermErrorBoundary caught:', error, errorInfo);
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="glass-panel-elevated p-8 rounded-2xl border border-rose-500/40 bg-rose-950/20 text-center space-y-4 my-8">
+          <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h3 className="text-lg font-bold text-white">Skin & Genomic Vision Component Recovered</h3>
+          <p className="text-xs text-slate-300 max-w-md mx-auto">
+            A temporary parameter mismatch was intercepted. Click below to reload the interactive optical workspace.
+          </p>
+          <div className="text-[11px] font-mono text-rose-300 bg-black/40 p-3 rounded-lg max-w-lg mx-auto overflow-x-auto text-left">
+            {this.state.error}
+          </div>
+          <button
+            onClick={this.handleReset}
+            className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition-all"
+          >
+            Reload Skin Vision Workspace
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const VisionDermPageInner: React.FC = () => {
   // Patient Demographics - default to healthy baseline
   const [patientName, setPatientName] = useState('Sophia Martinez');
   const [patientAge, setPatientAge] = useState<number>(28);
@@ -108,14 +162,18 @@ export const VisionDermPage: React.FC = () => {
     async function initData() {
       try {
         const [refSamples, dermalData] = await Promise.all([
-          fetchSkinReferenceSamples(),
+          fetchSkinReferenceSamples().catch(() => []),
           fetchRealDermalCases().catch(() => null)
         ]);
-        setSamples(refSamples);
-        setRealDermalCases(dermalData);
+        if (Array.isArray(refSamples) && refSamples.length > 0) {
+          setSamples(refSamples);
+        }
+        if (dermalData) {
+          setRealDermalCases(dermalData);
+        }
 
         // Initialize with default Type III reference analysis
-        if (refSamples.length > 2) {
+        if (Array.isArray(refSamples) && refSamples.length > 2) {
           runVisionAnalysisReference(2);
         }
       } catch (err) {
@@ -123,7 +181,7 @@ export const VisionDermPage: React.FC = () => {
       }
     }
     initData();
-    loadGeneData('MC1R');
+    loadGeneData('MC1R').catch(() => {});
 
     return () => {
       stopCamera();
@@ -217,30 +275,36 @@ export const VisionDermPage: React.FC = () => {
 
   // 1-Click Real Dermal Case Loader from Library
   async function loadRealDermalCase(caseItem: any) {
-    setPatientName(caseItem.patient_name);
-    setPatientAge(caseItem.age);
-    setPatientSex(caseItem.gender === 'male' ? 'Male' : 'Female');
-    setTp53Score(caseItem.tp53_mutation_score);
-    setBrcaPresent(caseItem.brca_variant_presence > 0.5);
-    setTmb(caseItem.tumor_mutational_burden);
-    setFamilyHistory(caseItem.family_history_cancer > 0.5);
-    setInflammatoryScore(caseItem.inflammatory_biomarker_score);
+    if (!caseItem) return;
+    setPatientName(caseItem.patient_name || 'Clinical Patient');
+    setPatientAge(Number(caseItem.age || 40));
+    setPatientSex(caseItem.gender === 'male' || caseItem.gender === 'Male' ? 'Male' : 'Female');
+    setTp53Score(Number(caseItem.tp53_mutation_score || 0.0));
+    setBrcaPresent(Number(caseItem.brca_variant_presence || 0) > 0.5);
+    setTmb(Number(caseItem.tumor_mutational_burden || 1.2));
+    setFamilyHistory(Number(caseItem.family_history_cancer || 0) > 0.5);
+    setInflammatoryScore(Number(caseItem.inflammatory_biomarker_score || 0.6));
+
+    const itaVal = Number(caseItem.ita_degrees !== undefined ? caseItem.ita_degrees : 35.0);
+    const eryVal = Number(caseItem.erythema_index !== undefined ? caseItem.erythema_index : 14.0);
+    const borderVal = Number(caseItem.border_irregularity_score !== undefined ? caseItem.border_irregularity_score : 0.08);
+    const variegVal = Number(caseItem.color_variegation_score !== undefined ? caseItem.color_variegation_score : 0.10);
 
     // Create a simulated vision analysis result matching this real patient
     const mockAnalysis: VisionAnalysisResult = {
-      l_star: 50.0 + caseItem.ita_degrees * 0.4,
-      a_star: 12.0 + caseItem.erythema_index * 0.3,
+      l_star: 50.0 + itaVal * 0.4,
+      a_star: 12.0 + eryVal * 0.3,
       b_star: 14.0,
-      ita_degrees: caseItem.ita_degrees,
-      fitzpatrick_phototype: caseItem.fitzpatrick_phototype,
-      skin_category: caseItem.fitzpatrick_phototype,
-      clinical_description: caseItem.condition,
-      melanin_index: caseItem.melanin_index,
-      erythema_index: caseItem.erythema_index,
-      lesion_detected: caseItem.border_irregularity_score > 0.20,
-      border_irregularity_score: caseItem.border_irregularity_score,
-      asymmetry_score: caseItem.border_irregularity_score * 0.9,
-      color_variegation_score: caseItem.color_variegation_score,
+      ita_degrees: itaVal,
+      fitzpatrick_phototype: caseItem.fitzpatrick_phototype || 'Type III',
+      skin_category: caseItem.fitzpatrick_phototype || 'Type III',
+      clinical_description: caseItem.condition || 'Clinical Case Profile',
+      melanin_index: Number(caseItem.melanin_index || 22.0),
+      erythema_index: eryVal,
+      lesion_detected: borderVal > 0.20,
+      border_irregularity_score: borderVal,
+      asymmetry_score: borderVal * 0.9,
+      color_variegation_score: variegVal,
       image_annotated_b64: ''
     };
     setVisionAnalysis(mockAnalysis);
@@ -250,20 +314,20 @@ export const VisionDermPage: React.FC = () => {
     setLoadingPredict(true);
     try {
       const payload = {
-        patient_name: caseItem.patient_name,
-        patient_age: caseItem.age,
-        patient_sex: caseItem.gender === 'male' ? 'Male' : 'Female',
-        fitzpatrick_phototype: caseItem.fitzpatrick_phototype,
-        ita_degrees: caseItem.ita_degrees,
-        melanin_index: caseItem.melanin_index,
-        erythema_index: caseItem.erythema_index,
-        border_irregularity_score: caseItem.border_irregularity_score,
-        color_variegation_score: caseItem.color_variegation_score,
-        tp53_mutation_score: caseItem.tp53_mutation_score,
-        brca_variant_presence: caseItem.brca_variant_presence,
-        tumor_mutational_burden: caseItem.tumor_mutational_burden,
-        family_history_cancer: caseItem.family_history_cancer,
-        inflammatory_biomarker_score: caseItem.inflammatory_biomarker_score
+        patient_name: caseItem.patient_name || 'Clinical Patient',
+        patient_age: Number(caseItem.age || 40),
+        patient_sex: caseItem.gender === 'male' || caseItem.gender === 'Male' ? 'Male' : 'Female',
+        fitzpatrick_phototype: caseItem.fitzpatrick_phototype || 'Type III',
+        ita_degrees: itaVal,
+        melanin_index: Number(caseItem.melanin_index || 22.0),
+        erythema_index: eryVal,
+        border_irregularity_score: borderVal,
+        color_variegation_score: variegVal,
+        tp53_mutation_score: Number(caseItem.tp53_mutation_score || 0.0),
+        brca_variant_presence: Number(caseItem.brca_variant_presence || 0),
+        tumor_mutational_burden: Number(caseItem.tumor_mutational_burden || 1.2),
+        family_history_cancer: Number(caseItem.family_history_cancer || 0),
+        inflammatory_biomarker_score: Number(caseItem.inflammatory_biomarker_score || 0.6)
       };
       const res = await predictMultiModalDiseaseRisk(payload);
       setPrediction(res);
@@ -709,54 +773,62 @@ export const VisionDermPage: React.FC = () => {
 
         {/* Patient Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {realDermalCases && realDermalCases[activeDermalSexTab]?.map((c: any) => (
-            <div
-              key={c.case_id}
-              className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-3"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-indigo-300">{c.case_id}</span>
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: `${c.risk_color}20`, color: c.risk_color, borderColor: `${c.risk_color}40` }}
-                  >
-                    {c.risk_tier} ({(c.hybrid_risk_score * 100).toFixed(1)}%)
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-white mt-1.5">{c.patient_name}</div>
-                <div className="text-[11px] text-slate-400">{c.condition} • {c.age} yrs • {c.clinical_stage}</div>
-                
-                <div className="mt-2.5 pt-2 border-t border-slate-800/80 space-y-1 text-[10px]">
-                  <div className="flex justify-between text-slate-400">
-                    <span>Phototype & ITA:</span>
-                    <span className="text-slate-200 font-mono">{c.fitzpatrick_phototype} ({c.ita_degrees}°)</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Border & Variegation:</span>
-                    <span className="text-slate-200 font-mono">{c.border_irregularity_score} | {c.color_variegation_score}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Driver Mutations:</span>
-                    <span className="text-amber-300 font-mono font-semibold truncate max-w-[140px]" title={c.driver_mutations.join(', ')}>
-                      {c.driver_mutations[0]}
+          {realDermalCases && Array.isArray(realDermalCases[activeDermalSexTab]) && realDermalCases[activeDermalSexTab].map((c: any) => {
+            const riskColor = c.risk_color || (Number(c.hybrid_risk_score || 0) >= 0.70 ? '#EF4444' : Number(c.hybrid_risk_score || 0) >= 0.40 ? '#F97316' : '#10B981');
+            const riskTier = c.risk_tier || (Number(c.hybrid_risk_score || 0) >= 0.70 ? 'CRITICAL RISK' : Number(c.hybrid_risk_score || 0) >= 0.40 ? 'MODERATE RISK' : 'LOW RISK');
+            const hybridRisk = Number(c.hybrid_risk_score !== undefined ? c.hybrid_risk_score : 0.084);
+            const mutations = Array.isArray(c.driver_mutations) ? c.driver_mutations : (c.driver_mutations ? [c.driver_mutations] : ['None (Wildtype)']);
+            const firstMut = mutations.length > 0 ? mutations[0] : 'None (Wildtype)';
+
+            return (
+              <div
+                key={c.case_id || Math.random()}
+                className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-3"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-indigo-300">{c.case_id || 'DERM-CASE'}</span>
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: `${riskColor}20`, color: riskColor, borderColor: `${riskColor}40` }}
+                    >
+                      {riskTier} ({(hybridRisk * 100).toFixed(1)}%)
                     </span>
                   </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>MC1R Status:</span>
-                    <span className="text-slate-300 truncate max-w-[140px]" title={c.mc1r_status}>{c.mc1r_status}</span>
+                  <div className="text-xs font-bold text-white mt-1.5">{c.patient_name || 'Clinical Subject'}</div>
+                  <div className="text-[11px] text-slate-400">{c.condition || 'Cutaneous Observation'} • {c.age || 40} yrs • {c.clinical_stage || 'Stage 0'}</div>
+                  
+                  <div className="mt-2.5 pt-2 border-t border-slate-800/80 space-y-1 text-[10px]">
+                    <div className="flex justify-between text-slate-400">
+                      <span>Phototype & ITA:</span>
+                      <span className="text-slate-200 font-mono">{c.fitzpatrick_phototype || 'Type III'} ({c.ita_degrees !== undefined ? c.ita_degrees : 35}°)</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Border & Variegation:</span>
+                      <span className="text-slate-200 font-mono">{c.border_irregularity_score !== undefined ? c.border_irregularity_score : 0.08} | {c.color_variegation_score !== undefined ? c.color_variegation_score : 0.10}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Driver Mutations:</span>
+                      <span className="text-amber-300 font-mono font-semibold truncate max-w-[140px]" title={mutations.join(', ')}>
+                        {firstMut}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>MC1R Status:</span>
+                      <span className="text-slate-300 truncate max-w-[140px]" title={c.mc1r_status || 'Wildtype'}>{c.mc1r_status || 'Wildtype'}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <button
-                onClick={() => loadRealDermalCase(c)}
-                className="w-full py-1.5 rounded-lg text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Zap className="w-3.5 h-3.5 text-indigo-400" /> Load Case into Model
-              </button>
-            </div>
-          ))}
+                <button
+                  onClick={() => loadRealDermalCase(c)}
+                  className="w-full py-1.5 rounded-lg text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Zap className="w-3.5 h-3.5 text-indigo-400" /> Load Case into Model
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -1413,19 +1485,19 @@ export const VisionDermPage: React.FC = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono">
                     <div className="p-2 rounded bg-slate-900 border border-slate-800">
                       <div className="text-slate-400">Q0: Morphology</div>
-                      <div className="text-emerald-300 font-bold">θ={prediction.quantum_bloch_coordinates.qubit_0_morphology?.theta} rad</div>
+                      <div className="text-emerald-300 font-bold">θ={getBlochTheta(prediction.quantum_bloch_coordinates, 'qubit_0_morphology', 0)} rad</div>
                     </div>
                     <div className="p-2 rounded bg-slate-900 border border-slate-800">
                       <div className="text-slate-400">Q1: Somatic Driver</div>
-                      <div className="text-emerald-300 font-bold">θ={prediction.quantum_bloch_coordinates.qubit_1_genomics?.theta} rad</div>
+                      <div className="text-emerald-300 font-bold">θ={getBlochTheta(prediction.quantum_bloch_coordinates, 'qubit_1_genomics', 1)} rad</div>
                     </div>
                     <div className="p-2 rounded bg-slate-900 border border-slate-800">
                       <div className="text-slate-400">Q2: Phototype ITA</div>
-                      <div className="text-emerald-300 font-bold">θ={prediction.quantum_bloch_coordinates.qubit_2_phototype?.theta} rad</div>
+                      <div className="text-emerald-300 font-bold">θ={getBlochTheta(prediction.quantum_bloch_coordinates, 'qubit_2_phototype', 2)} rad</div>
                     </div>
                     <div className="p-2 rounded bg-slate-900 border border-slate-800">
                       <div className="text-slate-400">Q3: TMB / Inflam.</div>
-                      <div className="text-emerald-300 font-bold">θ={prediction.quantum_bloch_coordinates.qubit_3_inflammation?.theta} rad</div>
+                      <div className="text-emerald-300 font-bold">θ={getBlochTheta(prediction.quantum_bloch_coordinates, 'qubit_3_inflammation', 3)} rad</div>
                     </div>
                   </div>
                 </div>
@@ -1455,15 +1527,15 @@ export const VisionDermPage: React.FC = () => {
                         <div className="text-[10px] font-bold text-slate-300">{pt.phototype}</div>
                         <div className="text-[9px] text-slate-400 truncate">{pt.category}</div>
                         <div className="text-sm font-bold font-mono text-white mt-1">
-                          {(pt.hybrid_risk * 100).toFixed(1)}%
+                          {((pt.hybrid_risk || 0) * 100).toFixed(1)}%
                         </div>
                         <div
                           className="text-[9px] font-bold mt-0.5"
                           style={{
-                            color: pt.hybrid_risk >= 0.80 ? '#EF4444' : pt.hybrid_risk >= 0.55 ? '#F97316' : pt.hybrid_risk >= 0.25 ? '#F59E0B' : '#10B981'
+                            color: (pt.hybrid_risk || 0) >= 0.80 ? '#EF4444' : (pt.hybrid_risk || 0) >= 0.55 ? '#F97316' : (pt.hybrid_risk || 0) >= 0.25 ? '#F59E0B' : '#10B981'
                           }}
                         >
-                          {pt.risk_tier.split(' ')[0]}
+                          {pt?.risk_tier ? String(pt.risk_tier).split(' ')[0] : ((pt.hybrid_risk || 0) >= 0.70 ? 'High' : (pt.hybrid_risk || 0) >= 0.40 ? 'Mod' : 'Low')}
                         </div>
                         {pt.is_patient_phototype && (
                           <span className="inline-block mt-1 px-1.5 py-0.2 rounded bg-indigo-500 text-[8px] font-bold text-white uppercase">
@@ -1513,6 +1585,14 @@ export const VisionDermPage: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+export const VisionDermPage: React.FC = () => {
+  return (
+    <VisionDermErrorBoundary>
+      <VisionDermPageInner />
+    </VisionDermErrorBoundary>
   );
 };
 export default VisionDermPage;
