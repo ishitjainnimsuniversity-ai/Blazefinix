@@ -239,15 +239,15 @@ export async function predictMultiModalDiseaseRisk(payload: any): Promise<MultiM
 }
 
 export function getReportPdfUrl(recordId: string): string {
-  return `${API_BASE}/reports/${recordId}/pdf`;
+  return `./reports/clinical_decision_report_${recordId}.pdf`;
 }
 
 export function getDoctorReportPdfUrl(recordId: string): string {
-  return `${API_BASE}/reports/${recordId}/doctor-pdf`;
+  return `./reports/doctor_clinical_report_${recordId}.pdf`;
 }
 
 export function getPatientReportPdfUrl(recordId: string): string {
-  return `${API_BASE}/reports/${recordId}/patient-pdf`;
+  return `./reports/patient_health_summary_${recordId}.pdf`;
 }
 
 export function getReportHtmlUrl(recordId: string): string {

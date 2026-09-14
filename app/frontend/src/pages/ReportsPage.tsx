@@ -519,24 +519,54 @@ export const ReportsPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Action Buttons: PDF, Print, Download HTML */}
+          {/* Action Buttons: Real Pre-generated PDFs + Print + Download HTML */}
           <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={getReportPdfUrl(recordId)}
+              download={`clinical_decision_report_${recordId}.pdf`}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-600/30"
+              title="Download publication-grade Clinical Decision PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Clinical PDF</span>
+            </a>
+
+            <a
+              href={getDoctorReportPdfUrl(recordId)}
+              download={`doctor_clinical_report_${recordId}.pdf`}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/30"
+              title="Download Detailed Physician/Doctor Clinical Dossier PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Doctor PDF</span>
+            </a>
+
+            <a
+              href={getPatientReportPdfUrl(recordId)}
+              download={`patient_health_summary_${recordId}.pdf`}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white transition-all shadow-md shadow-teal-600/30"
+              title="Download Patient-Friendly Plain Language Skin & Health Summary PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Patient PDF</span>
+            </a>
+
             <button
               onClick={handlePrintOrPdf}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-600/30"
-              title="Print formatted document or save as PDF"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all"
+              title="Print document or save directly via browser print engine"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print / Save PDF</span>
+              <Printer className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Print</span>
             </button>
 
             <button
               onClick={handleDownloadHtml}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/30"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-all"
               title="Download standalone HTML dossier"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download HTML</span>
+              <FileText className="w-3.5 h-3.5 text-slate-400" />
+              <span>HTML</span>
             </button>
           </div>
         </div>
