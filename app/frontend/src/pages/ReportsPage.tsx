@@ -34,7 +34,7 @@ import { generateClinicalReportHtml } from '../utils/reportHtmlGenerator';
 
 export const ReportsPage: React.FC = () => {
   const [recordId, setRecordId] = useState('DEMO-HIGH-03');
-  const [activeTab, setActiveTab] = useState<'PATIENTS' | 'MODELS'>('PATIENTS');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'PATIENTS' | 'MODELS'>('ALL');
   const [testedPatients, setTestedPatients] = useState<TestedPatientItem[]>([]);
   const [modelReports, setModelReports] = useState<any[]>([]);
   const [currentReport, setCurrentReport] = useState<any>(null);
@@ -133,8 +133,8 @@ export const ReportsPage: React.FC = () => {
   }
 
   const filteredPatients = testedPatients.filter((p) => {
-    // Exclude synthetic model rows from patient table
-    if (p.record_id.startsWith('MODEL-')) return false;
+    // In PATIENTS tab, exclude model rows; in ALL tab, include everything
+    if (activeTab === 'PATIENTS' && p.record_id.startsWith('MODEL-')) return false;
 
     const matchCohort =
       cohortFilter === 'ALL' ||
@@ -268,7 +268,7 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {/* TAB 1: Tested Patients Table */}
-      {activeTab === 'PATIENTS' && (
+      {(activeTab === 'ALL' || activeTab === 'PATIENTS') && (
         <div className="glass-panel-elevated rounded-2xl p-6 border border-slate-800 space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -407,6 +407,8 @@ export const ReportsPage: React.FC = () => {
                             <a
                               href={getReportPdfUrl(p.record_id)}
                               download={`clinical_decision_report_${p.record_id}.pdf`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap"
                               title="Download Clinical Decision Support PDF"
@@ -417,6 +419,8 @@ export const ReportsPage: React.FC = () => {
                             <a
                               href={getDoctorReportPdfUrl(p.record_id)}
                               download={`doctor_clinical_report_${p.record_id}.pdf`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap"
                               title="Download Physician / Doctor Detailed PDF"
@@ -427,6 +431,8 @@ export const ReportsPage: React.FC = () => {
                             <a
                               href={getPatientReportPdfUrl(p.record_id)}
                               download={`patient_health_summary_${p.record_id}.pdf`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className="px-2 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap"
                               title="Download Patient-Friendly Summary PDF"

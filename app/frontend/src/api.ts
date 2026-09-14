@@ -15,6 +15,7 @@ import {
   ArchitectureUspData
 } from './types';
 
+import { ALL_COHORT_ALERTS } from './allAlertsData';
 import {
   FALLBACK_TOP_CANCERS,
   FALLBACK_REAL_PATIENTS,
@@ -24,6 +25,7 @@ import {
   FALLBACK_MODEL_REPORTS,
   FALLBACK_CLINICAL_REPORTS
 } from './fallbackData';
+export { FALLBACK_CLINICAL_REPORTS };
 
 const API_BASE = '/api';
 
@@ -514,81 +516,41 @@ export async function fetchNCBIRecords() {
   ];
 }
 
-// Default Seed Alerts
-const DEFAULT_ALERTS: AlertData[] = [
-  {
-    alert_id: 'ALT-CRIT-01',
-    record_id: 'DEMO-CRIT-04',
-    prediction_id: 'PRED-DEMO-CRIT-04',
-    risk_score: 0.8950,
-    severity: 'CRITICAL',
-    reason: 'Severe glycemic destabilization (HbA1c 9.2%, Fasting Glucose 198 mg/dL) with stage 2 hypertensive crisis',
-    recommendation: 'Immediate endocrine and cardiology stat consult. Repeat venous blood gas and telemetry admission.',
-    contributing_factors: [
-      'hba1c (9.2%) - Severe Uncontrolled Diabetes',
-      'systolic_bp (176 mmHg) - Hypertensive Urgency'
-    ],
-    acknowledged: false,
-    status: 'PENDING',
-    created_at: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    alert_id: 'ALT-HIGH-02',
-    record_id: 'DEMO-HIGH-03',
-    prediction_id: 'PRED-DEMO-HIGH-03',
-    risk_score: 0.7850,
-    severity: 'HIGH',
-    reason: 'Combined metabolic risk with active smoking and systemic inflammation (hs-CRP 4.2 mg/L)',
-    recommendation: 'Initiate high-intensity statin therapy, prescribe ACE-inhibitor, schedule 14-day vascular clinic follow-up.',
-    contributing_factors: [
-      'systolic_bp (158 mmHg) - Stage 2 Hypertension',
-      'hs_crp (4.2 mg/L) - High Cardiovascular Inflammation'
-    ],
-    acknowledged: true,
-    acknowledged_by: 'Dr. Sarah Lin (Attending)',
-    acknowledged_at: new Date(Date.now() - 7200000).toISOString(),
-    status: 'REVIEWED',
-    created_at: new Date(Date.now() - 14400000).toISOString()
-  },
-  {
-    alert_id: 'ALT-CRIT-03',
-    record_id: 'R-CAD-1042',
-    prediction_id: 'PRED-R-CAD-1042',
-    risk_score: 0.8650,
-    severity: 'CRITICAL',
-    reason: 'Cardiometabolic Cohort Case with multi-vessel atherogenic risk (LDL 178 mg/dL)',
-    recommendation: 'Coronary artery calcium (CAC) scan and multidisciplinary cardiology evaluation.',
-    contributing_factors: [
-      'ldl_cholesterol (178 mg/dL) - Atherogenic Hypercholesterolemia',
-      'systolic_bp (164 mmHg) - Uncontrolled SBP'
-    ],
-    acknowledged: false,
-    status: 'PENDING',
-    created_at: new Date(Date.now() - 28800000).toISOString()
-  }
-];
+// Comprehensive Cohort Alerts (All 67 Patients & Models)
+export const DEFAULT_ALERTS: AlertData[] = ALL_COHORT_ALERTS;
 
 export async function fetchAlerts(severity?: string, status?: string): Promise<AlertData[]> {
-  let allAlerts: AlertData[] = DEFAULT_ALERTS;
+  let allAlerts: AlertData[] = ALL_COHORT_ALERTS;
   try {
     const stored = localStorage.getItem('blazefinix_alerts');
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      // Ensure full cohort alerts are used if previous storage was smaller
+      if (Array.isArray(parsed) && parsed.length >= ALL_COHORT_ALERTS.length) {
         allAlerts = parsed;
       } else {
-        localStorage.setItem('blazefinix_alerts', JSON.stringify(DEFAULT_ALERTS));
+        localStorage.setItem('blazefinix_alerts', JSON.stringify(ALL_COHORT_ALERTS));
+        allAlerts = ALL_COHORT_ALERTS;
       }
     } else {
-      localStorage.setItem('blazefinix_alerts', JSON.stringify(DEFAULT_ALERTS));
+      localStorage.setItem('blazefinix_alerts', JSON.stringify(ALL_COHORT_ALERTS));
     }
   } catch {
-    allAlerts = DEFAULT_ALERTS;
+    allAlerts = ALL_COHORT_ALERTS;
   }
 
   const filtered = allAlerts.filter((a) => {
-    const matchSev = !severity || severity === 'ALL' || a.severity.toUpperCase() === severity.toUpperCase();
-    const matchStat = !status || status === 'ALL' || a.status.toUpperCase() === status.toUpperCase();
+    const sev = (a.severity || '').toUpperCase();
+    const reqSev = (severity || 'ALL').toUpperCase();
+    const matchSev =
+      reqSev === 'ALL' ||
+      sev === reqSev ||
+      (reqSev === 'MEDIUM' && (sev === 'MODERATE' || sev === 'MEDIUM')) ||
+      (reqSev === 'MODERATE' && (sev === 'MODERATE' || sev === 'MEDIUM')) ||
+      (reqSev === 'LOW' && (sev === 'LOW' || sev === 'NORMAL'));
+
+    const reqStat = (status || 'ALL').toUpperCase();
+    const matchStat = reqStat === 'ALL' || (a.status || '').toUpperCase() === reqStat;
     return matchSev && matchStat;
   });
 
@@ -597,7 +559,13 @@ export async function fetchAlerts(severity?: string, status?: string): Promise<A
 
 export async function acknowledgeAlert(alertId: string, clinicianName: string, notes?: string) {
   try {
-    const stored = JSON.parse(localStorage.getItem('blazefinix_alerts') || '[]');
+    let stored: AlertData[] = [];
+    try {
+      stored = JSON.parse(localStorage.getItem('blazefinix_alerts') || '[]');
+    } catch {}
+    if (!Array.isArray(stored) || stored.length === 0) {
+      stored = [...ALL_COHORT_ALERTS];
+    }
     const target = stored.find((a: any) => a.alert_id === alertId);
     if (target) {
       target.acknowledged = true;
@@ -618,10 +586,16 @@ export async function acknowledgeAlert(alertId: string, clinicianName: string, n
 
 export async function triageAlert(alertId: string, newStatus: string) {
   try {
-    const stored = JSON.parse(localStorage.getItem('blazefinix_alerts') || '[]');
+    let stored: AlertData[] = [];
+    try {
+      stored = JSON.parse(localStorage.getItem('blazefinix_alerts') || '[]');
+    } catch {}
+    if (!Array.isArray(stored) || stored.length === 0) {
+      stored = [...ALL_COHORT_ALERTS];
+    }
     const target = stored.find((a: any) => a.alert_id === alertId);
     if (target) {
-      target.status = newStatus.toUpperCase();
+      target.status = (newStatus || 'PENDING').toUpperCase() as any;
       localStorage.setItem('blazefinix_alerts', JSON.stringify(stored));
     }
   } catch (e) {

@@ -16,6 +16,7 @@ import { PredictionResult, DemoCase } from '../types';
 import {
   fetchDemoCases,
   FALLBACK_DEMO_CASES,
+  FALLBACK_CLINICAL_REPORTS,
   predictPatientRisk,
   acknowledgeAlert,
   submitDoctorFeedback,
@@ -66,7 +67,28 @@ export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
             }
           } catch (e) {}
 
-          // 2. Check if it is a demo case ID
+          // 2. Check precomputed publication clinical reports (all 67 patients/models)
+          if (FALLBACK_CLINICAL_REPORTS[targetId]) {
+            const rep = FALLBACK_CLINICAL_REPORTS[targetId];
+            setSelectedCaseId(targetId);
+            setPrediction(rep);
+            setDemoCases((prev) => {
+              if (prev.some((c) => c.case_id === targetId)) return prev;
+              return [
+                ...prev,
+                {
+                  case_id: targetId,
+                  label: `${targetId} (Selected)`,
+                  description: rep.explanation_summary || 'Evaluated cohort patient dossier.',
+                  expected_risk: rep.risk_category || 'Clinical Evaluation',
+                  features: rep.features || {}
+                }
+              ];
+            });
+            return;
+          }
+
+          // 3. Check demo cases
           const matchedCase = finalCases.find((c) => c.case_id === targetId);
           if (matchedCase) {
             setSelectedCaseId(matchedCase.case_id);
@@ -74,7 +96,7 @@ export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
             return;
           }
 
-          // 3. Fallback: predict for custom ID
+          // 4. Fallback: predict for custom ID
           const customPred = await predictPatientRisk({}, targetId);
           setSelectedCaseId(targetId);
           setPrediction(customPred);
@@ -113,6 +135,10 @@ export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
 
   function handleCaseChange(caseId: string) {
     setSelectedCaseId(caseId);
+    if (FALLBACK_CLINICAL_REPORTS[caseId]) {
+      setPrediction(FALLBACK_CLINICAL_REPORTS[caseId]);
+      return;
+    }
     const targetCase = demoCases.find((c) => c.case_id === caseId);
     if (targetCase) {
       runPredictionForCase(targetCase);
@@ -158,7 +184,7 @@ export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Select Patient Case:
           </span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {demoCases.map((c) => (
               <button
                 key={c.case_id}
@@ -172,6 +198,19 @@ export const ClinicalDecisionPage: React.FC<ClinicalDecisionPageProps> = ({
                 {c.label.split('(')[0]}
               </button>
             ))}
+
+            <select
+              value={selectedCaseId}
+              onChange={(e) => handleCaseChange(e.target.value)}
+              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs focus:outline-none focus:border-indigo-500 font-mono ml-1"
+            >
+              <option value="" disabled>Select any of 67 Cohort Dossiers...</option>
+              {Object.keys(FALLBACK_CLINICAL_REPORTS).map((id) => (
+                <option key={id} value={id}>
+                  {id} — {FALLBACK_CLINICAL_REPORTS[id].risk_category || 'Patient'} ({Math.round((FALLBACK_CLINICAL_REPORTS[id].hybrid_risk || 0.5) * 100)}%)
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
