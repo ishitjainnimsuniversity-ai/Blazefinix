@@ -14,6 +14,13 @@ import {
   ArchitectureUspData
 } from './types';
 
+import {
+  FALLBACK_TOP_CANCERS,
+  FALLBACK_REAL_PATIENTS,
+  FALLBACK_ARCHITECTURE_USP,
+  FALLBACK_BENCHMARK
+} from './fallbackData';
+
 const API_BASE = '/api';
 
 export async function fetchHealth() {
@@ -53,8 +60,13 @@ export async function fetchPredictionHistory(): Promise<any[]> {
 }
 
 export async function fetchBenchmark(): Promise<BenchmarkResult> {
-  const res = await fetch(`${API_BASE}/models/benchmark`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/models/benchmark`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn('API unavailable, loading local benchmark fallback');
+  }
+  return FALLBACK_BENCHMARK as BenchmarkResult;
 }
 
 export async function trainPipeline(config: {
@@ -219,18 +231,33 @@ export function getReportHtmlUrl(recordId: string): string {
 }
 
 export async function fetchArchitectureUsp(): Promise<ArchitectureUspData> {
-  const res = await fetch(`${API_BASE}/models/architecture-usp`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/models/architecture-usp`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn('API unavailable, loading architecture USP fallback');
+  }
+  return FALLBACK_ARCHITECTURE_USP as ArchitectureUspData;
 }
 
 export async function fetchTopCancers(): Promise<any> {
-  const res = await fetch(`${API_BASE}/cancer/top-cancers`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/cancer/top-cancers`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn('API unavailable, loading top cancers fallback');
+  }
+  return FALLBACK_TOP_CANCERS;
 }
 
 export async function fetchRealPatients(): Promise<any> {
-  const res = await fetch(`${API_BASE}/cancer/real-patients`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/cancer/real-patients`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn('API unavailable, loading real patient cohort fallback');
+  }
+  return FALLBACK_REAL_PATIENTS;
 }
 
 export async function fetchGenomicStructure(geneSymbol: string): Promise<any> {
